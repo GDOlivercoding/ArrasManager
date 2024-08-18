@@ -1,95 +1,164 @@
 from init import (
-    # modules
-    mbox,
-    fdialog,
+    partial, 
     os,
-
-    # functions
-    move,
-    dump,
-
-    # variables
+    fdialog, 
+    mbox, 
+    create_dict,
+    dump, 
+    move, 
+    load,
     file_logdata,
     file_settings,
-    write,
+    base_dir,
     dir_arras,
-
+    write,
+    copy_dict
 )
-
-# confirmation if ran accidentally
-match_var = mbox.askyesnocancel(
-    title="Are you sure?",
-    message="Are you sure you want to run the main installation process?\nYes if you just downloaded this software,\nno to just repair the data files\nor cancel if its already been set up",
+from os import (
+    getcwd as cwd,
+    chdir as cd
 )
+from pathlib import Path
 
-if match_var == False:
-        # make logdata file
+import tkinter as tk
+import ttkbootstrap as ttk
+
+class InstallerFunctions: 
+
+    @staticmethod
+    def full():
+        
+        store = fdialog.askdirectory(
+            title="Select directory to execute installation in, for example the Desktop directory"
+        )
+
+        if not store:
+            return
+
+        dir_saves = os.path.join(store, "Arras.io Saves")
+
+        os.mkdir(dir_saves)
+        os.chdir(dir_saves)
+
+        to_make = ["Normal", "Olddreads", "Arms Race", "Ended Runs", "Arras Python"]
+        for item in to_make:
+            try:
+                os.mkdir(item)
+            except:
+                ...
+
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+        sys_files = ("modify.py", "arras.py", "installer.py", "init.py", "requirements.txt")
+        for file in sys_files:
+            try:
+                move(file, dir_saves)
+            except: ...
+
+        if not os.path.exists(dir_arras):
+            os.mkdir(dir_arras)
 
         with open(file_logdata, "w") as file:
             file.write("0")
 
-        # make settings file
         with open(file_settings, "w", encoding="utf-8") as file:
-
             dump(obj=write, fp=file)
 
-        mbox.showinfo(title="Success", message="Successfully repaired the data files!")
-        exit()
+        mbox.showinfo(
+            title="Success",
+            message=f"Successfully set up the software! All python files have been moved to {os.path.join(dir_saves, "Arras Python")}",
+        )
 
-elif match_var == None:
-    exit()
+    @staticmethod
+    def repair_all():
+        with open(file_settings, "r") as file:
+            contents = file.readlines()
 
-# ask for directory of choice of where the directory should be made in
-store = fdialog.askdirectory(
-    title="Select directory to execute installation in, for example the Desktop directory"
-)
+        try:
+            int(contents[0])
+        except ValueError:
+            contents[0] = str(0)
+            with open(file_logdata, "w") as file:
+                file.writelines(contents)
 
-# if the user decides to cancel the installation
-if not store:
-    mbox.showerror(
-        title="Error", message="No directory selected, installation cancelled"
-    )
-    exit()
+        with open(file_settings, "r") as file:
+            contents = load(fp=file)
 
-# create main Arras.io Saves directory
-dir_saves = os.path.join(store, "Arras.io Saves")
+        try:
+            create_dict(contents)
+        except: 
+            
+            dictionary = copy_dict(write)
+            
+            dictionary["unclaimed"] = contents["unclaimed"]
 
-os.mkdir(dir_saves)
-os.chdir(dir_saves)
+            with open(file_settings, "w") as file:
+                dump(fp=file, obj=dictionary)
 
-# create subdirectories
-to_make = ["Normal", "Olddreads", "Arms Race", "Ended Runs", "Arras Python"]
-for item in to_make:
-    try:
-        os.mkdir(item)
-    except:
-        ...
+        mbox.showinfo(title="Success", message="Successfully repaired the files!")
 
-# move all sys files to the main directory
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    @staticmethod
+    def tree():
+        get_dir = fdialog.askdirectory(title="Directory to create the tree in")
+        if not get_dir:
+            return
 
-sys_files = ("modify.py", "arras.py", "installer.py", "init.py", "requirements.txt")
-for file in sys_files:
-    try:
-        move(file, dir_saves)
-    except:
-        ...
+        cur = Path.cwd()
+        dirpath = cur / "Arras.io Saves"
 
-# AppData dir and the files it stores
-if not os.path.exists(dir_arras):
-    os.mkdir(dir_arras)
+        try:
+            os.mkdir(dirpath)
+        except: ...
 
-# make logdata file
-with open(file_logdata, "w") as file:
-    file.write("0")
+        cd(dirpath)
+        for dir in ["Normal", "Olddreads", "Arms Race", "Ended Runs", "Arras Python"]:
+            os.mkdir(dir)
 
-# make settings file
-with open(file_settings, "w", encoding="utf-8") as file:
-    dump(obj=write, fp=file)
+        mbox.showinfo("Success", "Successfully constructed the directory tree!")
 
-# a good success message is needed for the user to understand that it has REALLY happened
-mbox.showinfo(
-    title="Success",
-    message=f"Successfully set up the software! All python files have been moved to {os.path.join(dir_saves, "Arras Python")}",
-)
-# after pressing OK the program automatically crashes because there's no more code to execute
+funcs = InstallerFunctions()
+
+font: dict = {"font": ("great vibes", 20)}
+
+window = tk.Tk()
+window.title("Arras installer")
+window.geometry("700x600")
+window.resizable(False, False)
+
+top_header = ttk.Label(window, text="Common functions:", font=("great vibes", 30))
+top_header.pack(anchor="center", pady=(0, 20))
+
+
+
+top_frame = ttk.Frame(window)
+top_frame.pack(anchor="center")
+frame_button = partial(tk.Button, master=top_frame, font=("great vibes", 18))
+
+full_installation = frame_button(text="full installation", command=funcs.full)
+full_installation.pack(side="left")
+
+repair_files = frame_button(text="repair data files", command=funcs.repair_all)
+repair_files.pack(side="left", padx=10)
+
+construct_tree = frame_button(text="construct dir tree", command=funcs.tree)
+construct_tree.pack(side="left", padx=10)
+
+tk.Label(window, text="More options", **font).pack(pady=(300, 0))
+
+bottom_frame1 = ttk.Frame(window)
+bottom_frame1.pack(anchor="center", pady=20)
+
+packer = {"side": "left", "padx": 10}
+
+bottom_button = partial(tk.Button, master=bottom_frame1, font=("great vibes", 18))
+
+clean_logger = bottom_button(text="clean logger")
+clean_logger.pack(**packer)
+
+clean_settings = bottom_button(text="clean settings")
+clean_settings.pack(**packer)
+
+full_reset = bottom_button(text="fully reset settings")
+full_reset.pack(**packer)
+
+window.tk.mainloop()
