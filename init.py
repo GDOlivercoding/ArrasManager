@@ -1,5 +1,4 @@
 from tkinter import (
-
     # tkinter gui elements
     Tk,
     Label,
@@ -13,7 +12,6 @@ from tkinter import (
     Button,
     Scrollbar,
     Listbox,
-
     # tkinter constants
     Y,
     BOTH as t_BOTH,
@@ -21,18 +19,27 @@ from tkinter import (
     HORIZONTAL,
     DISABLED,
     END,
-
     # modules from the tkinter package
     filedialog as fdialog,
     messagebox as mbox,
-    simpledialog as sd, # big big thigy, i wanted this for a while
-    ttk as ttk # unnecessary alias
+    simpledialog as sd,  # big big thigy, i wanted this for a while
+    ttk as ttk,  # unnecessary alias
 )
 
 from shutil import move
 from sys import exit
 from datetime import datetime, date, timedelta
-from typing import ClassVar, Never, Callable, Protocol, overload, Any, Literal, Final, Iterable
+from typing import (
+    ClassVar,
+    Never,
+    Callable,
+    Protocol,
+    overload,
+    Any,
+    Literal,
+    Final,
+    Iterable,
+)
 from json import load, dump as _dump
 from os import startfile as os_startfile
 import os
@@ -43,10 +50,7 @@ from time import perf_counter, sleep
 
 # checking dependencies (not required)
 try:
-    from pyperclip import (
-        paste as get_clipboard,
-        copy as copy_clipboard
-    )
+    from pyperclip import paste as get_clipboard, copy as copy_clipboard
 
     import_type: bool = True
 except ImportError:
@@ -54,14 +58,16 @@ except ImportError:
 
 try:
     import pyautogui as pag
+
     pag_import: bool = True
 except ImportError:
-    #mbox.showerror(title="Import Error", message="You do not have pyautogui installed\nThis app requires pyautogui to be installed\ncheck requirements.txt")
+    # mbox.showerror(title="Import Error", message="You do not have pyautogui installed\nThis app requires pyautogui to be installed\ncheck requirements.txt")
     # pag is unused for now, so it is not a requirement
     pag_import = False
 
 try:
     from pygetwindow import getWindowsWithTitle
+
     gw_import: bool = True
 except ImportError:
     gw_import = False
@@ -79,9 +85,10 @@ SINGLE: Final = 1
 BOTH: Final = 2
 NO_EXCEPTION: Final = "NoneType: None"
 
+
 class SupportsWrite(Protocol):
-  def write(self, data: Any, /) -> Any:
-    ...
+    def write(self, data: Any, /) -> Any: ...
+
 
 JSONSerializable = None | bool | str | float | int | tuple | list | dict
 type ContentsType = Any | list[str] | dict[str, str]
@@ -93,10 +100,13 @@ regions: dict[str, str] = {
     "o": "Oceania",
 }
 
-Region = Literal["Europe", "US West", "US Central", "Oceania"]
-Gamemode = Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"]
+gamemode: list[str] = ["Normal", "Olddreads", "Newdreads", "Grownth", "Arms race"]
 
-settings_keys: list[str] = [    
+RegionType = Literal["Europe", "US West", "US Central", "Oceania"]
+Region = list(regions.values())
+GamemodeType = Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"]
+
+settings_keys: list[str] = [
     "fullscreen_ss",
     "windowed_ss",
     "single_ss",
@@ -108,7 +118,7 @@ settings_keys: list[str] = [
     "ask_time",
     "def_time",
     "open_dirname",
-    "unclaimed"
+    "unclaimed",
 ]
 
 settings_base_values: list[ContentsType] = [
@@ -123,14 +133,13 @@ settings_base_values: list[ContentsType] = [
     False,
     5 * 60,
     False,
-    {}
+    {},
 ]
 
-# my own simple implementation of the functools partial
-# tis all i need
 
 def dump(obj: Any, fp: SupportsWrite):
     return _dump(obj=obj, fp=fp, indent=4)
+
 
 class partial[T, **P]:
     """
@@ -144,13 +153,14 @@ class partial[T, **P]:
         """
         if not isinstance(func, type):
             raise TypeError(f"partial expects a class reference not a {func!r}")
-        
+
         self.func = func
         self.args = args
         self.kws = kwargs
 
     def __call__(self, *fargs: P.args, **kwds: P.kwargs) -> T:
         return self.func(*self.args, *fargs, **self.kws, **kwds)
+
 
 @dataclass
 class Settings:
@@ -181,9 +191,14 @@ class Settings:
         (Makes the object JSON serializable)
         """
 
-        return {k: v if isinstance(v, JSONSerializable) # type: ignore[InvalidParameterType]
-                else str(v) 
-                for k, v in vars(self).items()} 
+        return {
+            k: (
+                v
+                if isinstance(v, JSONSerializable)  # type: ignore[InvalidParameterType]
+                else str(v)
+            )
+            for k, v in vars(self).items()
+        }
 
 
 def create_dict(contents: dict[str, ContentsType], /) -> Settings:
@@ -191,11 +206,12 @@ def create_dict(contents: dict[str, ContentsType], /) -> Settings:
     # before i used to unpack the .values() but now i realized i can just unpack the whole dictionary
     # this function remains since its a way to manage all new instances of the Settings class
 
-    return Settings(**contents) # type: ignore
+    return Settings(**contents)  # type: ignore
+
 
 def format_score(raw_i: int, /) -> str:
     """return the raw score integer formatted"""
-    raw = str(raw_i) # we want an integer but we will format it as a string
+    raw = str(raw_i)  # we want an integer but we will format it as a string
 
     match len(raw):
 
@@ -215,16 +231,19 @@ def format_score(raw_i: int, /) -> str:
             return f"{raw[:1:]}.{raw[1::][:2:]}b"
 
         case _:
-            raise ValueError(
-                f"Score Integer isn't in the savable range: {len(raw)}"
-            )
+            raise ValueError(f"Score Integer isn't in the savable range: {len(raw)}")
+
 
 # contains defaults for Settings object
-write: dict[str, ContentsType] = {k: v for k, v in zip(settings_keys, settings_base_values, strict=True)}
+write: dict[str, ContentsType] = {
+    k: v for k, v in zip(settings_keys, settings_base_values, strict=True)
+}
 
 # we give out some info if we run the file directly
 if __name__ == "__main__":
-    print(f"\n{base_dir=}\n{dir_arras=}\n{file_logdata=}\n{file_settings}\n{screenshot_dir=}\n\n")
+    print(
+        f"\n{base_dir=}\n{dir_arras=}\n{file_logdata=}\n{file_settings}\n{screenshot_dir=}\n\n"
+    )
 
     print("regions:\n")
     for k, v in regions.items():
@@ -242,7 +261,10 @@ if __name__ == "__main__":
     for k, v in write.items():
         print(f"{k} = {v}")
 
-    mbox.showinfo(title="Not for use", message="This is a system file, check the console if you're looking for debug info\notherwise hit 'ok' to exit")
+    mbox.showinfo(
+        title="Not for use",
+        message="This is a system file, check the console if you're looking for debug info\notherwise hit 'ok' to exit",
+    )
 
 # not for export
 del screenshot_dir

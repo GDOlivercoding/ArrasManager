@@ -1,35 +1,43 @@
 from init import (
-    Gamemode,
-    Region,
+    GamemodeType,
+    RegionType,
     mbox,
-    datetime, date,
-    tb, sd,
-
+    datetime,
+    date,
+    tb,
+    sd,
     Settings,
     Never,
     Literal,
-
     format_score,
     move,
-    dump, load,
+    dump,
+    load,
     create_dict,
-    perf_counter, sleep,
+    perf_counter,
+    sleep,
     os_startfile,
     get_clipboard,
-
-    NONE, SINGLE, BOTH, NO_EXCEPTION, ContentsType, Path,
-
+    NONE,
+    SINGLE,
+    BOTH,
+    NO_EXCEPTION,
+    ContentsType,
+    Path,
     regions,
     file_settings,
     file_logdata,
     import_type,
     base_dir,
-    Any
+    Any,
 )
 
 # this file is not meant to be imported, so if i accidentally do, i find the issue faster
 if __name__ != "__main__":
-    mbox.showerror(title="ERROR", message=f"This file is NOT meant to be imported, but rather ran directly! process name: {__name__=}")
+    mbox.showerror(
+        title="ERROR",
+        message=f"This file is NOT meant to be imported, but rather ran directly! process name: {__name__=}",
+    )
 
     raise SystemExit(
         f"This file is NOT meant to be imported, but rather ran directly! process name: {__name__=}"
@@ -42,6 +50,7 @@ if __name__ != "__main__":
 # -------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------
+
 
 class CodeData:
     """contains non persistent data"""
@@ -76,7 +85,7 @@ class CodeData:
         self.region = self.match_region()
         self.dirname = self.construct_dirname()
 
-    def match_gamemode(self) -> Gamemode:
+    def match_gamemode(self) -> GamemodeType:
         """return the gamemode based on its name"""
 
         gamemode = "Normal"
@@ -89,9 +98,9 @@ class CodeData:
             if self.gamemode_tag.startswith(tag):
                 gamemode = mode
 
-        return gamemode # type: ignore
+        return gamemode  # type: ignore
 
-    def match_region(self) -> Region:
+    def match_region(self) -> RegionType:
         region = None
 
         for k, v in regions.items():
@@ -100,11 +109,13 @@ class CodeData:
                 break
 
         if region is None:
-            ExceptionHandler(f"The region has not been found, this is an internal error, server: {self.server}")
+            ExceptionHandler(
+                f"The region has not been found, this is an internal error, server: {self.server}"
+            )
 
-            exit() # this code is unreachable but its for my type checker
+            exit()  # this code is unreachable but its for my type checker
 
-        return region # type: ignore
+        return region  # type: ignore
 
     def construct_dirname(self) -> Path:
         cur_date = str(datetime.now()).split(" ")[0].split("-")
@@ -123,7 +134,7 @@ class CodeData:
 
 
 class FileIO:
-    def __init__(self) -> None:  
+    def __init__(self) -> None:
         if not CodeData.instantiated:
             raise ValueError("CodeData not instantiated")
         elif not Settings.__instances__:
@@ -138,9 +149,11 @@ class FileIO:
 
         WriteUnclaimed(data, ctx.code)
 
-    def add_ss(self) -> tuple[Path | None, Path | None]: # not a type hinting error
+    def add_ss(self) -> tuple[Path | None, Path | None]:  # not a type hinting error
 
-        if data.pic_export == NONE:  # do not run this function if the user wishes to not save any death ss
+        if (
+            data.pic_export == NONE
+        ):  # do not run this function if the user wishes to not save any death ss
             return (None, None)
 
         if not data.ss_dir.exists():
@@ -152,7 +165,7 @@ class FileIO:
         ss1, ss2 = sorted(new.values(), reverse=True)[:2]
 
         if data.pic_export == BOTH:
-            # we rename the files first since pathlib.Path 
+            # we rename the files first since pathlib.Path
             # will return the new renamed file path
             # this is not good since the moving operation is the one more likely
             # to fail
@@ -161,15 +174,17 @@ class FileIO:
             ss1.rename(data.fullscreen_ss)
             ss2.rename(data.windowed_ss)
             for f in (ss1, ss2):
-                move(f, data.ss_dir)       
+                move(f, data.ss_dir)
 
-        elif data.pic_export == SINGLE: 
+        elif data.pic_export == SINGLE:
             # same as above
             ss1.rename(data.single_ss)
             move(ss1, data.ss_dir)
 
         else:
-            ExceptionHandler(f"Picture export integer isn't in the allowed range, integer: {data.pic_export}")
+            ExceptionHandler(
+                f"Picture export integer isn't in the allowed range, integer: {data.pic_export}"
+            )
 
         return (ss1, ss2) if data.pic_export == BOTH else (ss1, None)
 
@@ -195,7 +210,9 @@ class ExceptionHandler:
     def write_exception(self) -> Never:
 
         if not file_logdata.exists():
-            with (base_dir / "Desktop" / f"{date.today()} ArrasErr.log").open("w") as file:
+            with (base_dir / "Desktop" / f"{date.today()} ArrasErr.log").open(
+                "w"
+            ) as file:
                 file.writelines(self.message.strip() + "\n")
 
             self.display_exception(
@@ -231,7 +248,7 @@ class ExceptionHandler:
 
     def info_string(self) -> str:
         exc = tb.format_exc().strip()
-        
+
         BIG_STRING = f"""
 ------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------
@@ -246,6 +263,7 @@ full stacktrace:
     {exc if exc != NO_EXCEPTION else "This isn't an internal error, please refer to the message above"}
 """
         return BIG_STRING
+
 
 # ------------------------------------------------------------------------------
 # write various information in the logdata file upon the program succeeding
@@ -274,7 +292,7 @@ class WriteDown:
     def get_report_int(self) -> int:
         try:
             dummy = int(self.contents[0])
-            
+
         except ValueError:
             dummy = 1
         except IndexError:
@@ -314,6 +332,7 @@ runtime in minutes: {ctx.runtime // 60}min
 """
         return BIG_STRING
 
+
 class WriteUnclaimed:
     """helper to write down the code for the unclaimed codes list for convenience
     called from the FileIO class
@@ -324,26 +343,37 @@ class WriteUnclaimed:
         self.contents = contents
 
         if self.code in self.contents.unclaimed.keys():
-            mbox.showwarning(title="WARNING", message="This code has already been registered!\nIt is registered as 'unclaimed' in the Unclaimed tab of modify.py!")
+            mbox.showwarning(
+                title="WARNING",
+                message="This code has already been registered!\nIt is registered as 'unclaimed' in the Unclaimed tab of modify.py!",
+            )
 
-        self.contents.unclaimed[self.code] = datetime.isoformat(datetime.now()) # type: ignore "unclaimed" is a dictionary
+        self.contents.unclaimed[self.code] = datetime.isoformat(datetime.now())  # type: ignore "unclaimed" is a dictionary
 
         with file_settings.open("w") as file:
             dump(obj=self.contents.get_dict(), fp=file)
 
+
 class _EnabledAutomation:
     """this is the implementation for the absolute automation but there a question on how do we receive the code itself"""
+
     # TODO: figure out how to get the code im so braindead right now
 
     def __init__(self, data: Settings) -> None:
         self.data = data
         if not import_type:
-            mbox.showerror("module not downloaded", "'Pyperclip' is a required module to access this functionality, please read the README file")
+            mbox.showerror(
+                "module not downloaded",
+                "'Pyperclip' is a required module to access this functionality, please read the README file",
+            )
             exit()
-       
+
     def wait(self):
         if self.data.ask_time:
-            sleep_time = sd.askinteger(title="Wait time", prompt="Amount of time to wait in seconds\nbefore attempting to save")
+            sleep_time = sd.askinteger(
+                title="Wait time",
+                prompt="Amount of time to wait in seconds\nbefore attempting to save",
+            )
             if sleep_time is None:
                 mbox.showwarning("App closed", "Saving cancelled!")
                 exit()
@@ -352,11 +382,15 @@ class _EnabledAutomation:
             sleep_time = self.data.def_time
 
         before = perf_counter()
-        mbox.showinfo(f"The app is now going to wait {self.data.def_time}s before saving!")
+        mbox.showinfo(
+            f"The app is now going to wait {self.data.def_time}s before saving!"
+        )
         after = perf_counter()
 
         wait_time = (after - before) // 1
         sleep(sleep_time - wait_time)
+
+
 # ---------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------
 # Instant functionality starts here
@@ -366,8 +400,12 @@ class _EnabledAutomation:
 
 if not file_settings.exists():
 
-    try: raise FileNotFoundError(f"FileNotFoundError: Path (File) '{file_settings}' doesn't exist")
-    except FileNotFoundError: ...
+    try:
+        raise FileNotFoundError(
+            f"FileNotFoundError: Path (File) '{file_settings}' doesn't exist"
+        )
+    except FileNotFoundError:
+        ...
     # this is to make sure that tb.format_exc() works as expected
 
     ExceptionHandler(
@@ -377,7 +415,7 @@ if not file_settings.exists():
 with file_settings.open("r") as file:
     data = create_dict(load(file))
 
-#if data.automation:
+# if data.automation:
 #    if data.confirmation:
 #        if mbox.askyesno(title="Confirmation", message="Are you sure you want to create a save?") != True:
 #            exit()
@@ -390,12 +428,16 @@ else:
 
 
 if len(code.split(":")) < 10:
-    ExceptionHandler("Input text is not a code: code doesn't have more than 10 parts when split by a colon")
+    ExceptionHandler(
+        "Input text is not a code: code doesn't have more than 10 parts when split by a colon"
+    )
 
 ctx = CodeData(code)
 
 if data.confirmation:
-    if not mbox.askyesno(title="Confirmation", message="Are you sure you want to create a save?"):
+    if not mbox.askyesno(
+        title="Confirmation", message="Are you sure you want to create a save?"
+    ):
         exit()
 
 try:
@@ -407,11 +449,16 @@ try:
         if data.open_dirname:
             os_startfile(ctx.dirname)
     except:
-        ExceptionHandler("An internal error has occured when trying to show the directory location\nreport this to the owner\nnote that everything went well, there's nothing to fear", kill=False)
+        ExceptionHandler(
+            "An internal error has occured when trying to show the directory location\nreport this to the owner\nnote that everything went well, there's nothing to fear",
+            kill=False,
+        )
         WriteDown()
 
 except Exception as e:
-    ExceptionHandler(f"A critical internal error has occured when attempting file IO operations\nreport this to the owner immediately\nmake sure to backup the code and the screenshot\nmessage: {str(e)}\ntraceback can be found in the logger file")
-    exit() # code unreachable
+    ExceptionHandler(
+        f"A critical internal error has occured when attempting file IO operations\nreport this to the owner immediately\nmake sure to backup the code and the screenshot\nmessage: {str(e)}\ntraceback can be found in the logger file"
+    )
+    exit()  # code unreachable
 
 WriteDown()

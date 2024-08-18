@@ -1,32 +1,29 @@
 from init import (
     # modules
-    os, 
-    datetime, timedelta,
-    fdialog, sd,
+    os,
+    datetime,
+    timedelta,
+    fdialog,
+    sd,
     mbox,
     ttk,
     Path,
-    
     # cls
     Settings,
     partial,
     Never,
     Literal,
-
     # funcs
     create_dict,
     load,
     dump,
-    copy_clipboard, # actually a function
-
+    copy_clipboard,  # actually a function
     # vars
     file_logdata,
     file_settings,
     import_type,
     was_deleted,
-
     # tkinter
-
     # tkinter gui elements (cls)
     Tk,
     Label,
@@ -40,7 +37,6 @@ from init import (
     Button,
     Scrollbar,
     Listbox,
-
     # tkinter constants
     Y,
     t_BOTH,
@@ -70,7 +66,7 @@ window.resizable(False, False)
 # read settings
 with open(
     file_settings,
-    "r", # read mode
+    "r",  # read mode
     encoding="utf_8",
 ) as file:
     data = create_dict(load(fp=file))
@@ -105,8 +101,8 @@ mytab.pack(anchor="nw")
 
 
 def delete_logger() -> None:
-    global was_deleted # check global environment in envs
-    
+    global was_deleted  # check global environment in envs
+
     if (
         mbox.askyesno(
             title="Confirmation",
@@ -121,6 +117,7 @@ def delete_logger() -> None:
     was_deleted = True
 
     mbox.showinfo(title="Success", message="Successfully reset the logging file!")
+
 
 def _button_press(data: Settings, cur_path: StringVar):
     a = fdialog.askdirectory()
@@ -142,7 +139,8 @@ def set_default(
         mbox.askyesno(
             title="Confirmation",
             message="Are you sure you want to reset your settings? All options will be set to default",
-        )):
+        )
+    ):
         return
 
     with open(file_settings, "w", encoding="utf-8") as file:
@@ -235,6 +233,7 @@ def save_button_press(data: Settings) -> None:
 
     mbox.showinfo(title="Success", message="Settings saved")
     return
+
 
 # ------------------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------
@@ -381,7 +380,12 @@ menubar = Menu(window)
 window.config(menu=menubar)
 
 menubar.add_command(label="Save Settings", command=lambda: save_button_press(data))
-menubar.add_command(label="Open Docs", command=lambda: mbox.showinfo(title="Not Implemented", message="Not implemented yet"))
+menubar.add_command(
+    label="Open Docs",
+    command=lambda: mbox.showinfo(
+        title="Not Implemented", message="Not implemented yet"
+    ),
+)
 
 tab_nb = ttk.Notebook(tab1)
 confirm_tab = ttk.Frame(tab_nb)
@@ -534,17 +538,23 @@ ss_text_widget.pack(anchor="nw")
 # maybe we could make an entry field
 
 windowed, fullscreen, single = [
-    StringVar(value=data.windowed_ss, name="windowed"), 
-    StringVar(value=data.fullscreen_ss, name="fullscreen"), 
-    StringVar(value=data.single_ss, name="single")
+    StringVar(value=data.windowed_ss, name="windowed"),
+    StringVar(value=data.fullscreen_ss, name="fullscreen"),
+    StringVar(value=data.single_ss, name="single"),
 ]
+
 
 def widget_setter(var: StringVar, /, *, title: str, prompt: str):
     val = sd.askstring(title, prompt)
     if val is not None:
         var.set(val)
 
-widget_caller = lambda mode: widget_setter(mode, title=f"{str(mode).capitalize()}", prompt=f"Enter name for {str(mode)} screenshot")
+
+widget_caller = lambda mode: widget_setter(
+    mode,
+    title=f"{str(mode).capitalize()}",
+    prompt=f"Enter name for {str(mode)} screenshot",
+)
 
 packer: dict = {"anchor": "nw", "pady": (0, 30)}
 
@@ -554,7 +564,7 @@ setter = partial(Button, master=pic_filenames_tab, text="Set")
 Label1 = Label(pic_filenames_tab, text="Fullscreen picture:", font=("great vibes", 20))
 Label1.pack(anchor="nw", pady=(20, 0))
 
-windowed_setter = setter(command=lambda:widget_caller(windowed))
+windowed_setter = setter(command=lambda: widget_caller(windowed))
 windowed_setter.pack(anchor="nw")
 
 windowed_displayer = displayer(text=windowed.get())
@@ -594,7 +604,7 @@ def view_widget(context: str, title: str):
 
     for line in context.split("\n"):
         main_text.insert(END, line + "\n")
-        
+
     main_text.config(state=DISABLED)
     main_text.pack(anchor="nw", expand=True, fill=t_BOTH)
 
@@ -649,6 +659,7 @@ store = []
 for item in settings.items():
     store.append(f"{item[0]}: {item[1]}")
 
+
 def stgs_func(data: Settings):
 
     settings = data.get_dict()
@@ -659,7 +670,10 @@ def stgs_func(data: Settings):
 
     view_widget(title="Settings.json", context="\n".join(store))
 
-view_stgs_button = Button(tab3, text="View settings", command=lambda data=data: stgs_func(data))
+
+view_stgs_button = Button(
+    tab3, text="View settings", command=lambda data=data: stgs_func(data)
+)
 view_stgs_button.pack(anchor="nw")
 
 reset_stgs_button = Button(
@@ -701,16 +715,18 @@ del_logger_button.pack(anchor="nw", pady=(20, 0))
 export_log = Button(tab3, text="Export logdata", command=export_logdata)
 export_log.pack(anchor="nw", pady=(20, 0))
 
-#<----------------------------------->
+# <----------------------------------->
 # tab4: automation
 
-Label(tab4, text="Extra Automation Settings", font=("great vibes", 25)).pack(anchor="center", pady=(10, 0))
+Label(tab4, text="Extra Automation Settings", font=("great vibes", 25)).pack(
+    anchor="center", pady=(10, 0)
+)
 
 var_automation = BooleanVar(value=data.automation)
 
 Checkbutton(
-    master=tab4, 
-    text="Enable Advanced Automation", 
+    master=tab4,
+    text="Enable Advanced Automation",
     font=("great vibes", 20),
     variable=var_automation,
     onvalue=True,
@@ -719,16 +735,13 @@ Checkbutton(
     foreground="gray",
     activebackground="green",
     activeforeground="dark gray",
-
-).pack(
-    anchor="nw"
-)   
+).pack(anchor="nw")
 
 var_force = BooleanVar(value=data.force_automation)
 
 Checkbutton(
-    master=tab4, 
-    text="Force Automation Popup", 
+    master=tab4,
+    text="Force Automation Popup",
     font=("great vibes", 20),
     variable=var_force,
     onvalue=True,
@@ -737,24 +750,20 @@ Checkbutton(
     foreground="gray",
     activebackground="green",
     activeforeground="dark gray",
+).pack(anchor="nw", pady=(10, 0))
 
-).pack(
-    anchor="nw",
-    pady=(10, 0)
-) 
-
-Label(tab4, text="Default amount of seconds to wait\nbefore attempting to save\nwith current resources:", font=("great vibes", 15)).pack(anchor="nw", pady=(10, 0))
+Label(
+    tab4,
+    text="Default amount of seconds to wait\nbefore attempting to save\nwith current resources:",
+    font=("great vibes", 15),
+).pack(anchor="nw", pady=(10, 0))
 
 scl_def_automation = Scale(
-    tab4,
-    from_=300,
-    to=0,
-    orient=HORIZONTAL,
-    length=220,
-    resolution=10
+    tab4, from_=300, to=0, orient=HORIZONTAL, length=220, resolution=10
 )
 scl_def_automation.set(data.def_time)
 scl_def_automation.pack(anchor="nw", padx=(50, 0))
+
 
 # tab 5: Unclaimed
 def copy_command():
@@ -763,14 +772,18 @@ def copy_command():
     if not selection:
         mbox.showerror(title="ERROR", message="No code selected")
         return
-    
+
     code = listbox.get(selection)
 
     if not import_type:
-        mbox.showerror(title="ERROR", message="'pyperclip' module is not installed, this functionality can only be accessed with the module")
+        mbox.showerror(
+            title="ERROR",
+            message="'pyperclip' module is not installed, this functionality can only be accessed with the module",
+        )
     else:
         copy_clipboard(f"$claim {code}")
         mbox.showinfo(title="Success", message="Successfully copied message!")
+
 
 def claim_command():
     global listbox, data
@@ -778,17 +791,18 @@ def claim_command():
     if not selection:
         mbox.showerror(title="ERROR", message="No code selected")
         return
-    
+
     code = listbox.get(selection)
 
     if mbox.askyesno(title="CONFIRMATION", message="Are you sure?") != True:
         return
-    
+
     try:
         del data.unclaimed[code]
         listbox.delete(selection)
     except ValueError:
         mbox.showerror(title="ERROR", message="Selected object not found")
+
 
 scrollbar = Scrollbar(tab5)
 scrollbar.pack(side=RIGHT, fill=Y)
@@ -833,8 +847,11 @@ scrollbar.config(command=listbox.yview, width=20)
 button = Button(tab5, text="Copy Claim Command", font=("", 10), command=copy_command)
 button.pack(pady=20, anchor="center")
 
-button = Button(tab5, text="Claim Code (Remove from list)", font=("", 10), command=claim_command)
+button = Button(
+    tab5, text="Claim Code (Remove from list)", font=("", 10), command=claim_command
+)
 button.pack(pady=50, anchor="center")
+
 
 # save changes upon exiting
 def Save(
@@ -849,8 +866,7 @@ def Save(
     Ef: StringVar,
     Ew: StringVar,
     Es: StringVar,
-    ) -> Never:
-
+) -> Never:
     """
     Ef: Entry Fullscreen,
     Ew: ^^^^^ Windowed,
@@ -863,7 +879,9 @@ def Save(
     data.force_automation = var_force.get()
 
     scale_int = scale.get()
-    data.def_time = int(def_scale.get()) # i have to reconvert to int so my type checker can stfu
+    data.def_time = int(
+        def_scale.get()
+    )  # i have to reconvert to int so my type checker can stfu
 
     if scale_int in (0, 1, 2):
         data.pic_export = scale_int
@@ -874,7 +892,6 @@ def Save(
     data.fullscreen_ss = Ef.get()
     data.windowed_ss = Ew.get()
     data.single_ss = Es.get()
-    
 
     # dump settings
     with open(file_settings, "w", encoding="utf_8") as file:
@@ -926,7 +943,7 @@ total time spent in modify.py: {c_sub_dt(list1=open_val, list2=close_val)}
 
 
 window.protocol(
-    "WM_DELETE_WINDOW", # WINDOW MANAGER DELETE WINDOW
+    "WM_DELETE_WINDOW",  # WINDOW MANAGER DELETE WINDOW
     lambda data=data: Save(
         data,
         var_confirmation,

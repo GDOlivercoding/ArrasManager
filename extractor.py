@@ -1,6 +1,6 @@
 from tkinter import *  # type: ignore[wildcard]
 from tkinter import ttk, simpledialog as sd, messagebox as mbox
-from init import Gamemode, Region, format_score
+from init import GamemodeType, RegionType, format_score
 from typing import Literal, Callable, Any
 
 regions: dict[str, str] = {
@@ -10,35 +10,38 @@ regions: dict[str, str] = {
     "o": "Oceania",
 }
 
-def match_region(server: str) -> Region:
-        region = "Unknown"
 
-        for k, v in regions.items():
-            if server[1::][:1:] == k:
-                region = v
+def match_region(server: str) -> RegionType:
+    region = "Unknown"
 
-        return region # type: ignore
+    for k, v in regions.items():
+        if server[1::][:1:] == k:
+            region = v
 
-def match_gamemode(server_name: str) -> Gamemode:
-        """return the gamemode based on its name"""
+    return region  # type: ignore
 
-        gamemode = "Normal"
 
-        for name, mode in {"old": "Olddreads", "forge": "Newdreads"}.items():
-            if name in server_name:
-                gamemode = mode
+def match_gamemode(server_name: str) -> GamemodeType:
+    """return the gamemode based on its name"""
 
-        for tag, mode in {"g": "Grownth", "a": "Arms Race"}.items():
-            if server_name.startswith(tag):
-                gamemode = mode
+    gamemode = "Normal"
 
-        # can only return the given Literal yet still screams
-        return gamemode # type: ignore[ReturnType]
+    for name, mode in {"old": "Olddreads", "forge": "Newdreads"}.items():
+        if name in server_name:
+            gamemode = mode
+
+    for tag, mode in {"g": "Grownth", "a": "Arms Race"}.items():
+        if server_name.startswith(tag):
+            gamemode = mode
+
+    # can only return the given Literal yet still screams
+    return gamemode  # type: ignore[ReturnType]
+
 
 def input_code():
     global text, entry
     code = text.get()
-    if not code: 
+    if not code:
         return
     elif len(code.split(":")) < 10:
         mbox.showerror("Invalid code", "Input code is invalid")
@@ -49,21 +52,42 @@ def input_code():
 
 
 type DataTupleType = tuple[
-    str, str, # code, server tag
-    Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"], # gamemode
-    str, str, str, str, # region, class, build, score
-    float, int, # runtime in hours, minutes
-    int, int, int, # kills, assists, boss kills/assists
-    float, float, float # score per kill, kill per minute, kill per assist
+    str,
+    str,  # code, server tag
+    Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"],  # gamemode
+    str,
+    str,
+    str,
+    str,  # region, class, build, score
+    float,
+    int,  # runtime in hours, minutes
+    int,
+    int,
+    int,  # kills, assists, boss kills/assists
+    float,
+    float,
+    float,  # score per kill, kill per minute, kill per assist
 ]
 
 
-def get_analytics(code: str) -> DataTupleType:  
+def get_analytics(code: str) -> DataTupleType:
 
     parts = code.split(":")
     # sample code
     # (6f0cb12f:#eo:e5forge:Arbitrator-Astronomic:0/2/6/10/10/10/10/12/0/0:7148698:20683:71:13:4:5017:62:1710762682:JDo5u44GPYop3lwZ)
-    _, server_tag, server_name, tank_class, build, score, runtime, kills, assists, boss_kills, *__ = parts
+    (
+        _,
+        server_tag,
+        server_name,
+        tank_class,
+        build,
+        score,
+        runtime,
+        kills,
+        assists,
+        boss_kills,
+        *__,
+    ) = parts
     del _, __
 
     kills, assists, boss_kills = int(kills), int(assists), int(boss_kills)
@@ -79,19 +103,29 @@ def get_analytics(code: str) -> DataTupleType:
     runtime_hours = float(f"{runtime / 3600:.1f}")
 
     # kills
-    kills_score = i_score // kills # amount of score between each kill
-    kills_mins = runtime_mins / kills # average amount of time takes to get a kill
-    kills_assists = kills / assists # amount of kills per assist
+    kills_score = i_score // kills  # amount of score between each kill
+    kills_mins = runtime_mins / kills  # average amount of time takes to get a kill
+    kills_assists = kills / assists  # amount of kills per assist
 
     # regular information
     return (
-        code,  server_tag, 
-        gamemode, # server_name readable
-        region,  tank_class, build, score, 
-        runtime_hours, runtime_mins,
-        kills, assists, boss_kills,
-        kills_score, kills_mins, kills_assists
+        code,
+        server_tag,
+        gamemode,  # server_name readable
+        region,
+        tank_class,
+        build,
+        score,
+        runtime_hours,
+        runtime_mins,
+        kills,
+        assists,
+        boss_kills,
+        kills_score,
+        kills_mins,
+        kills_assists,
     )
+
 
 def display_widget(data: DataTupleType) -> None:
     wdg = Tk()
@@ -105,22 +139,27 @@ def display_widget(data: DataTupleType) -> None:
     main_text = Text(wdg, yscrollcommand=scroll.set)
 
     for item, line in zip(
-        ["code", 
-        "server tag", 
-        "gamemode", 
-        "region", 
-        "class", 
-        "build", 
-        "score", 
-        "runtime in hours", 
-        "runtime in minutes",
-        "kills", "assists", "boss kills/assists",
-        "kill per score", "kill per minute", "kills per assist"
-        ], data
-         
-        ):
-            main_text.insert(END, f"{item}: {line}\n")
-        
+        [
+            "code",
+            "server tag",
+            "gamemode",
+            "region",
+            "class",
+            "build",
+            "score",
+            "runtime in hours",
+            "runtime in minutes",
+            "kills",
+            "assists",
+            "boss kills/assists",
+            "kill per score",
+            "kill per minute",
+            "kills per assist",
+        ],
+        data,
+    ):
+        main_text.insert(END, f"{item}: {line}\n")
+
     main_text.config(state=DISABLED)
     main_text.pack(anchor="nw", expand=True, fill=BOTH)
 
@@ -132,7 +171,9 @@ wind.title("Extract code data - Independant app")
 wind.geometry("600x400")
 wind.resizable(*(False, False))
 
-header = ttk.Label(wind, text="Extract various data from a code", font=("great vibes", 20))
+header = ttk.Label(
+    wind, text="Extract various data from a code", font=("great vibes", 20)
+)
 header.pack(anchor="center")
 
 frame = ttk.Frame(wind)
@@ -141,7 +182,9 @@ frame.pack(anchor="center")
 entry = Entry(frame, textvariable=(text := StringVar()), font=("great vibes", 20))
 entry.pack(side="left")
 
-button = Button(frame, text="Create Widget", font=("great vibes", 20), command=input_code)
+button = Button(
+    frame, text="Create Widget", font=("great vibes", 20), command=input_code
+)
 button.pack(side="left", pady=120)
 
 wind.tk.mainloop()
