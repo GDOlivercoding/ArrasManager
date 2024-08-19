@@ -230,8 +230,9 @@ class FileIO:
 
 
 class ExceptionHandler:
-    def __init__(self, message: str) -> Never:
+    def __init__(self, message: str, kill=True) -> Never:
         self.message = message
+        self.kill = kill
 
         self.display_exception()
         self.write_exception()
@@ -254,7 +255,8 @@ class ExceptionHandler:
             self.display_exception(
                 "Logdata file doesn't exist, the traceback has been written on your desktop instead,\nto fix this problem, please run the installer and select the 'no' option"
             )
-            exit()
+            if self.kill:
+                exit()
 
         with open(file_logdata, "r", encoding="utf-8") as file:
             contents = file.readlines()
@@ -436,8 +438,12 @@ try:
 
     mbox.showinfo(title="Success", message="Successfully created a save!")
 
-    if data.open_dirname:
-        os.startfile(os.path.abspath(ctx.dirname))
+    try:
+        if data.open_dirname:
+            os.startfile(os.path.abspath(ctx.dirname))
+    except:
+        ExceptionHandler("An internal error has occured when trying to show the directory location\nreport this to the owner\nall tasks were ran successfully", kill=False)
+        WriteDown(ctx, data, var, text=var.message)
 
 except Exception as e:
     ExceptionHandler(f"A critical internal error has occured when attempting file IO operations\nreport this to the owner immediately\nmake sure to backup the code and the screenshot\nmessage: {str(e)}\ntraceback can be found in the logger file")
