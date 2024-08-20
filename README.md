@@ -13,3 +13,6 @@ runs without any need of libraries or other files
 
 installer.py can be used to repair potentially damaged files
 if a bug occurs please dm me on discord on top of this document
+
+do `py -m pip install -r requirements.txt` upon download
+or just `pip install -r requirements.txt` if you have pip on your PATH
