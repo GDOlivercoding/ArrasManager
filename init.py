@@ -58,6 +58,12 @@ except ImportError:
     # pag is unused for now, so it is not a requirement
     pag_import = False
 
+try:
+    from pygetwindow import getWindowsWithTitle
+    gw_import: bool = True
+except ImportError:
+    gw_import = False
+
 base_dir: Path = Path.home()
 dir_arras: Path = base_dir / "AppData" / "Local" / "Arras"
 file_logdata: Path = dir_arras / "logdata.txt"

@@ -164,9 +164,7 @@ class FileIO:
 
     def add_ss(self, _dirname: str) -> tuple[str | None, str | None]: # not a type hinting error
 
-        if (
-            self.data.pic_export == NONE
-        ):  # do not run this function if the user wishes to not save any death ss
+        if self.data.pic_export == NONE:  # do not run this function if the user wishes to not save any death ss
             return (None, None)
 
         try:
@@ -180,7 +178,7 @@ class FileIO:
                 f"An Error Occured, please report this to the software owner, export the logdata file and send it to the owner, dir: {self.data.ss_dir}, traceback: {str(e)}"
             )
 
-        sorted_files: list[str] = [f for f in os.listdir() if os.path.isfile(f)]
+        sorted_files = [f for f in os.listdir() if os.path.isfile(f)]
         sorted_files.sort(
             key=os.path.getctime, reverse=True
         )  # my type checker gets annoyed if we dont split this into 2 lines

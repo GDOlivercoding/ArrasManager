@@ -1,5 +1,4 @@
-// the arras save manager uses 2 non required external dependencies:
-
-ttkbootstrap - tkinter gui
-pyautogui - NOT_REQUIRED | UNUSED: pyautogui is going to be used for future features 
-pyperclip - NOT_REQUIRED: Conveniently take the code from your clipboard or copy some info to your clipboard on request, like copying the claim command for the code
+pygetwindow
+ttkbootstrap 
+pyautogui 
+pyperclip 
