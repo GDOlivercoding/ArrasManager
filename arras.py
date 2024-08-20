@@ -439,7 +439,6 @@ try:
 
     try:
         if data.open_dirname:
-            print(ctx.dirname, os.path.abspath(ctx.dirname), os.getcwd())
             os.startfile(os.path.abspath(var.abspath))
     except:
         ExceptionHandler("An internal error has occured when trying to show the directory location\nreport this to the owner\nall tasks were ran successfully", kill=False)
