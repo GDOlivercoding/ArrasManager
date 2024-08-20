@@ -32,7 +32,7 @@ from tkinter import (
 from shutil import move
 from sys import exit
 from datetime import datetime, date, timedelta
-from typing import Never, Callable, overload, Any, Literal, Final
+from typing import Never, Callable, overload, Any, Literal, Final, Iterable
 from json import load, dump
 import os
 import traceback as tb
@@ -140,14 +140,26 @@ class partial[T]:
         return self.func(*self.args, *fargs, **self.kws, **kwds)
 
 def copy_dict[K, V](obj: dict[K, V]) -> dict[K, V]:
-    return {k:v for k, v in obj.items()}
+    return {**obj}
 
 def copy_list[T](obj: list[T]) -> list[T]:
-    return [i for i in obj]
+    return [*obj]
 
-def copy_tuple(obj: tuple) -> tuple:
-    # you cant really play with typevars in tuples
-    return tuple([i for i in obj])
+def copy_tuple[T](obj: tuple[T, ...]) -> tuple[T, ...]:
+    return (*obj,)
+
+def copy_container[T](obj: Iterable[T]) -> Iterable[T]:
+    if isinstance(obj, tuple):
+        return copy_tuple(obj)
+    elif isinstance(obj, list):
+        return copy_list(obj)
+    elif isinstance(obj, dict):
+        return copy_dict(obj)
+    else:
+        raise TypeError("Container not supported")
+    
+def return_self[T](obj: T) -> T:
+    return obj
 
 @dataclass
 class Settings:

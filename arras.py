@@ -141,9 +141,10 @@ class FileIO:
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
             os.chdir(self.ctx.gamemode)
-
+                      
             if not os.path.exists(self.ctx.dirname):
                 os.mkdir(self.ctx.dirname)
+            self.abspath = os.path.abspath(self.ctx.dirname)  
 
             return os.path.join(os.getcwd(), ctx.dirname)
 
@@ -438,7 +439,8 @@ try:
 
     try:
         if data.open_dirname:
-            os.startfile(os.path.abspath(ctx.dirname))
+            print(ctx.dirname, os.path.abspath(ctx.dirname), os.getcwd())
+            os.startfile(os.path.abspath(var.abspath))
     except:
         ExceptionHandler("An internal error has occured when trying to show the directory location\nreport this to the owner\nall tasks were ran successfully", kill=False)
         WriteDown(ctx, data, var, text=var.message)
