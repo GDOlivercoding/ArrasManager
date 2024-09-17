@@ -1,7 +1,7 @@
 from init import (
     mbox,
     datetime, date,
-    os, tb,
+    os, tb, sd,
 
     Settings,
     Never,
@@ -11,6 +11,7 @@ from init import (
     move,
     dump, load,
     create_dict,
+    perf_counter, sleep,
     get_clipboard,
 
     NONE, SINGLE, BOTH, NO_EXCEPTION, ContentsType,
@@ -306,12 +307,12 @@ full stacktrace:
 
 
 class WriteDown:
-    def __init__(self, ctx: CodeData, data: Settings, io: FileIO, /, *, text: str | Literal[False] = False) -> None:
-        self.ctx = ctx
-        self.data = data
+    def __init__(self, io: FileIO) -> None:
+        self.ctx = io.ctx
+        self.data = io.data
         self.io = io
 
-        self.text: str | Literal[False] = text
+        self.text: str | Literal[False] = io.message
         # i dont like this, i will replace this
         # this is no good
 
@@ -394,6 +395,32 @@ class WriteUnclaimed:
         with open(file_settings, "w", encoding="utf-8") as file:
             dump(fp=file, obj=self.contents.get_dict())
 
+class EnabledAutomation:
+    """this is the implementation for the absolute automation but there a question on how do we receive the code itself"""
+    # TODO: figure out how to get the code im so braindead right now
+
+    def __init__(self, data: Settings) -> None:
+        self.data = data
+        if not import_type:
+            mbox.showerror("module not downloaded", "'Pyperclip' is a required module to access this functionality, please read the README file")
+            exit()
+       
+    def wait(self):
+        if self.data.ask_time:
+            sleep_time = sd.askinteger(title="Wait time", prompt="Amount of time to wait in seconds\nbefore attempting to save")
+            if sleep_time is None:
+                mbox.showwarning("App closed", "Saving cancelled!")
+                exit()
+
+        else:
+            sleep_time = self.data.def_time
+
+        before = perf_counter()
+        mbox.showinfo(f"The app is now going to wait {self.data.def_time}s before saving!")
+        after = perf_counter()
+
+        wait_time = (after - before) // 1
+        sleep(sleep_time - wait_time)
 # ---------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------
 # Instant functionality starts here
@@ -414,6 +441,13 @@ if not os.path.exists(file_settings):
 with open(file_settings, "r", encoding="utf-8") as file:
     contents: dict[str, ContentsType] = load(file)
 
+data = create_dict(contents)
+
+#if data.automation:
+#    if data.confirmation:
+#        if mbox.askyesno(title="Confirmation", message="Are you sure you want to create a save?") != True:
+#            exit()
+#        EnabledAutomation(data)
 
 if import_type:
     code: str = get_clipboard()
@@ -424,9 +458,7 @@ else:
 if len(code.split(":")) < 10:
     ExceptionHandler("Input text is not a code: code doesn't have more than 10 parts when split by a colon")
 
-data: Settings = create_dict(contents)
 ctx = CodeData(code)
-
 
 if data.confirmation:
     if mbox.askyesno(title="Confirmation", message="Are you sure you want to create a save?") != True:
@@ -441,11 +473,11 @@ try:
         if data.open_dirname:
             os.startfile(os.path.abspath(var.abspath))
     except:
-        ExceptionHandler("An internal error has occured when trying to show the directory location\nreport this to the owner\nall tasks were ran successfully", kill=False)
-        WriteDown(ctx, data, var, text=var.message)
+        ExceptionHandler("An internal error has occured when trying to show the directory location\nreport this to the owner\nnote that everything went well, there's nothing to fear", kill=False)
+        WriteDown(var)
 
 except Exception as e:
     ExceptionHandler(f"A critical internal error has occured when attempting file IO operations\nreport this to the owner immediately\nmake sure to backup the code and the screenshot\nmessage: {str(e)}\ntraceback can be found in the logger file")
     exit() # code unreachable
 
-WriteDown(ctx, data, var, text=var.message)
+WriteDown(var)
