@@ -38,6 +38,7 @@ import os
 import traceback as tb
 from pathlib import Path
 from dataclasses import dataclass, field
+from time import perf_counter, sleep
 
 # checking dependencies (not required)
 try:
