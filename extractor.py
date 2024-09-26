@@ -43,7 +43,7 @@ def input_code():
     elif len(code.split(":")) < 10:
         mbox.showerror("Invalid code", "Input code is invalid")
     else:
-        entry.delete(FIRST, END)
+        entry.delete(1, END)
         data = get_analytics(code)
         display_widget(data)
 
