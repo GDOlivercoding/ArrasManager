@@ -106,21 +106,20 @@ def display_widget(data: DataTupleType) -> None:
 
     for item, line in zip(
         ["code", 
-         "server tag", 
-         "gamemode", 
-         "region", 
-         "class", 
-         "build", 
-         "score", 
-         "runtime in hours", 
-         "runtime in minutes",
-         "kills", "assists", "boss kills/assists",
-         "kill per score", "kill per minute", "kills per assist"
-        ]
-        ,data
+        "server tag", 
+        "gamemode", 
+        "region", 
+        "class", 
+        "build", 
+        "score", 
+        "runtime in hours", 
+        "runtime in minutes",
+        "kills", "assists", "boss kills/assists",
+        "kill per score", "kill per minute", "kills per assist"
+        ], data
          
         ):
-        main_text.insert(END, f"{item}: {line}\n")
+            main_text.insert(END, f"{item}: {line}\n")
         
     main_text.config(state=DISABLED)
     main_text.pack(anchor="nw", expand=True, fill=BOTH)
@@ -139,9 +138,7 @@ header.pack(anchor="center")
 frame = ttk.Frame(wind)
 frame.pack(anchor="center")
 
-text = StringVar()
-
-entry = Entry(frame, textvariable=text, font=("great vibes", 20))
+entry = Entry(frame, textvariable=(text := StringVar()), font=("great vibes", 20))
 entry.pack(side="left")
 
 button = Button(frame, text="Create Widget", font=("great vibes", 20), command=input_code)
