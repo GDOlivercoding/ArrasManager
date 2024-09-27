@@ -16,3 +16,6 @@ if a bug occurs please dm me on discord on top of this document
 
 do `py -m pip install -r requirements.txt` upon download
 or just `pip install -r requirements.txt` if you have pip on your PATH
+
+to download dependecies you can also run the `requirements.py` file which 
+will download all the dependecies for you :)
