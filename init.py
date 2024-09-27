@@ -184,20 +184,8 @@ class Settings:
         (Makes the object JSON serializable)
         """
 
-        return {
-            "fullscreen_ss": self.fullscreen_ss,
-            "windowed_ss": self.windowed_ss,
-            "single_ss": self.single_ss,
-            "confirmation": self.confirmation,
-            "pic_export": self.pic_export,
-            "ss_dir": self.ss_dir,
-            "automation": self.automation,
-            "force_automation": self.force_automation,
-            "ask_time": self.ask_time,
-            "def_time": self.def_time,
-            "open_dirname": self.open_dirname,
-            "unclaimed": self.unclaimed
-        }
+        return {key: getattr(self, key) for key in vars(self) 
+                if not key.startswith("__") and not key.endswith("__")}
 
 
 def create_dict(contents: dict[str, ContentsType], /) -> Settings:
