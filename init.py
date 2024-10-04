@@ -83,7 +83,7 @@ class SupportsWrite(Protocol):
   def write(self, data: Any, /) -> Any:
     ...
 
-type JSONSerializable = None | bool | str | float | int | tuple | list | dict
+JSONSerializable = None | bool | str | float | int | tuple | list | dict
 type ContentsType = Any | list[str] | dict[str, str]
 
 regions: dict[str, str] = {

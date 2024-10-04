@@ -108,7 +108,7 @@ class CodeData:
         formatted = f"{month}.{day}."
         self.datetime = formatted
 
-        return Path(f"{formatted} {self.score} {self.cls}").joinpath(Path.cwd())
+        return Path.cwd() / self.gamemode / Path(f"{formatted} {self.score} {self.cls}")
 
 
 # -------------------------------------------------------------------------
@@ -264,7 +264,7 @@ class WriteDown:
         self.write_logdata(self.contents)
 
     def read_logdata(self) -> list[str]:
-        with file_logdata.open("w") as file:
+        with file_logdata.open() as file:
             return file.readlines()
 
     def write_logdata(self, to_write: list[str]) -> Never:
