@@ -3,7 +3,7 @@ from init import (
     os,
     fdialog, 
     mbox, 
-    create_dict,
+    Path,
     dump, 
     move, 
     load,
@@ -12,14 +12,7 @@ from init import (
     base_dir,
     dir_arras,
     write,
-    copy_dict
 )
-from os import (
-    getcwd as cwd,
-    chdir as cd
-)
-from pathlib import Path
-
 import tkinter as tk
 import ttkbootstrap as ttk
 
@@ -35,33 +28,28 @@ class InstallerFunctions:
         if not store:
             return
 
-        dir_saves = os.path.join(store, "Arras.io Saves")
+        dir_saves = Path(store) / "Arras.io saves"
 
-        os.mkdir(dir_saves)
-        os.chdir(dir_saves)
+        dir_saves.mkdir()
 
         to_make = ["Normal", "Olddreads", "Arms Race", "Ended Runs", "Arras Python"]
         for item in to_make:
-            try:
-                os.mkdir(item)
-            except:
-                ...
+            # this is done due to me not trusting (obj / obj).meth()
+            dir = dir_saves / item
+            dir.mkdir()
 
-        os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-        sys_files = ("modify.py", "arras.py", "installer.py", "init.py", "requirements.txt")
-        for file in sys_files:
+        for file in [f for f in Path(__file__).iterdir() if f.is_file()]:
             try:
                 move(file, dir_saves)
-            except: ...
+            except FileExistsError: 
+                pass
 
-        if not os.path.exists(dir_arras):
-            os.mkdir(dir_arras)
+        dir_arras.mkdir(exist_ok=True)
 
-        with open(file_logdata, "w") as file:
+        with file_logdata.open("w") as file:
             file.write("0")
 
-        with open(file_settings, "w", encoding="utf-8") as file:
+        with file_settings.open("w") as file:
             dump(obj=write, fp=file)
 
         mbox.showinfo(
@@ -71,7 +59,7 @@ class InstallerFunctions:
 
     @staticmethod
     def repair_all():
-        with open(file_settings, "r") as file:
+        with file_logdata.open() as file:
             contents = file.readlines()
 
         try:
@@ -81,19 +69,21 @@ class InstallerFunctions:
             with open(file_logdata, "w") as file:
                 file.writelines(contents)
 
-        with open(file_settings, "r") as file:
+        with file_settings.open() as file:
             contents = load(fp=file)
 
+        
+        dictionary = {**write}
+        
         try:
-            create_dict(contents)
-        except: 
-            
-            dictionary = copy_dict(write)
-            
             dictionary["unclaimed"] = contents["unclaimed"]
+        except KeyError:
+            # if there are no unclaimed codes
+            # we simply do nothing
+            pass
 
-            with open(file_settings, "w") as file:
-                dump(fp=file, obj=dictionary)
+        with file_settings.open("w") as file:
+            dump(fp=file, obj=dictionary)
 
         mbox.showinfo(title="Success", message="Successfully repaired the files!")
 
@@ -106,13 +96,11 @@ class InstallerFunctions:
         cur = Path.cwd()
         dirpath = cur / "Arras.io Saves"
 
-        try:
-            os.mkdir(dirpath)
-        except: ...
+        dirpath.mkdir(exist_ok=True)
 
-        cd(dirpath)
-        for dir in ["Normal", "Olddreads", "Arms Race", "Ended Runs", "Arras Python"]:
-            os.mkdir(dir)
+        for dir in ["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race", "Ended Runs"]:
+            d = dirpath / dir
+            d.mkdir()
 
         mbox.showinfo("Success", "Successfully constructed the directory tree!")
 
@@ -127,8 +115,6 @@ window.resizable(False, False)
 
 top_header = ttk.Label(window, text="Common functions:", font=("great vibes", 30))
 top_header.pack(anchor="center", pady=(0, 20))
-
-
 
 top_frame = ttk.Frame(window)
 top_frame.pack(anchor="center")

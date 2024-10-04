@@ -128,7 +128,7 @@ def _button_press(data: Settings, cur_path: StringVar):
         mbox.showerror(title="Error", message="No directory selected")
         return
     cur_path.set(f"Current Path: {a}")
-    data.ss_dir = a
+    data.ss_dir = Path(a)
     mbox.showinfo(
         title="Success",
         message=f"Successfully changed the screenshots folder to {data.ss_dir}!",
@@ -138,13 +138,11 @@ def _button_press(data: Settings, cur_path: StringVar):
 def set_default(
     cb_confirmation: Checkbutton, pic_scale: Scale, data: Settings, cur_path: StringVar
 ) -> None:
-    if (
+    if not (
         mbox.askyesno(
             title="Confirmation",
             message="Are you sure you want to reset your settings? All options will be set to default",
-        )
-        is not True
-    ):
+        )):
         return
 
     with open(file_settings, "w", encoding="utf-8") as file:
@@ -159,7 +157,7 @@ def set_default(
 
     cb_confirmation.select()  # -> True
     pic_scale.set(0)  # -> 0  # -> False
-    data.ss_dir = str(Path.home() / "Pictures" / "Screenshots")
+    data.ss_dir = Path.home() / "Pictures" / "Screenshots"
     cur_path.set(f"Current Path: {data.ss_dir}")
     mbox.showinfo(title="Success", message="Successfully set all options to default!")
     return
@@ -805,6 +803,7 @@ listbox.config(width=550, height=20, yscrollcommand=scrollbar.set)
 
 colored_unclaimed: dict[str, Literal["white", "yellow", "red", "black"]] = {}
 
+"""
 for code, iso in data.unclaimed.items():
     time = datetime.fromisoformat(iso)
     comparison = datetime.now()
@@ -823,9 +822,9 @@ for code, iso in data.unclaimed.items():
         colored_unclaimed[code] = "white"
     print(code, iso, comparison)
 
-for code, color in colored_unclaimed.items():
+"""
+for code, iso in data.unclaimed.items():
     listbox.insert(END, code)
-    listbox.config(background=color)
 
 listbox.pack(anchor="center")
 

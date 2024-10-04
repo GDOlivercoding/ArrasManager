@@ -32,11 +32,12 @@ from tkinter import (
 from shutil import move
 from sys import exit
 from datetime import datetime, date, timedelta
-from typing import Never, Callable, overload, Any, Literal, Final, Iterable
-from json import load, dump
+from typing import Never, Callable, Protocol, overload, Any, Literal, Final, Iterable
+from json import load, dump as _dump
+from os import startfile as os_startfile
 import os
-import traceback as tb
 from pathlib import Path
+import traceback as tb
 from dataclasses import dataclass, field
 from time import perf_counter, sleep
 
@@ -78,6 +79,11 @@ SINGLE: Final = 1
 BOTH: Final = 2
 NO_EXCEPTION: Final = "NoneType: None"
 
+class SupportsWrite(Protocol):
+  def write(self, data: Any, /) -> Any:
+    ...
+
+type JSONSerializable = None | bool | str | float | int | tuple | list | dict
 type ContentsType = Any | list[str] | dict[str, str]
 
 regions: dict[str, str] = {
@@ -120,12 +126,15 @@ settings_base_values: list[ContentsType] = [
 # my own simple implementation of the functools partial
 # tis all i need
 
-class partial[T]:
+def dump(obj: Any, fp: SupportsWrite):
+    return _dump(obj=obj, fp=fp, indent=4)
+
+class partial[T, **P]:
     """
     create a Callable with the keywords arguments predefined
     """
 
-    def __init__(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, func: Callable[P, T], *args: Any, **kwargs: Any) -> None:
         """
         func parameter is the Callable to create
         any keywords are automatically added to the arguments of the Callable
@@ -137,30 +146,8 @@ class partial[T]:
         self.args = args
         self.kws = kwargs
 
-    def __call__(self, *fargs: Any, **kwds: Any) -> T:
+    def __call__(self, *fargs: P.args, **kwds: P.kwargs) -> T:
         return self.func(*self.args, *fargs, **self.kws, **kwds)
-
-def copy_dict[K, V](obj: dict[K, V]) -> dict[K, V]:
-    return {**obj}
-
-def copy_list[T](obj: list[T]) -> list[T]:
-    return [*obj]
-
-def copy_tuple[T](obj: tuple[T, ...]) -> tuple[T, ...]:
-    return (*obj,)
-
-def copy_container[T](obj: Iterable[T]) -> Iterable[T]:
-    if isinstance(obj, tuple):
-        return copy_tuple(obj)
-    elif isinstance(obj, list):
-        return copy_list(obj)
-    elif isinstance(obj, dict):
-        return copy_dict(obj)
-    else:
-        raise TypeError("Container not supported")
-    
-def return_self[T](obj: T) -> T:
-    return obj
 
 @dataclass
 class Settings:
@@ -171,7 +158,7 @@ class Settings:
     single_ss: str = "ss"
     confirmation: bool = True
     pic_export: Literal[0, 1, 2] = 0
-    ss_dir: str = str(screenshot_dir)
+    ss_dir: Path = Path(screenshot_dir)
     automation: bool = False
     force_automation: bool = False
     ask_time: bool = False
@@ -184,8 +171,9 @@ class Settings:
         (Makes the object JSON serializable)
         """
 
-        return {key: getattr(self, key) for key in vars(self) 
-                if not key.startswith("__") and not key.endswith("__")}
+        return {k: v if isinstance(v, JSONSerializable) # type: ignore[InvalidParameterType]
+                else str(v) 
+                for k, v in vars(self).items()} 
 
 
 def create_dict(contents: dict[str, ContentsType], /) -> Settings:
@@ -248,3 +236,6 @@ if __name__ == "__main__":
         print(f"{k} = {v}")
 
     mbox.showinfo(title="Not for use", message="This is a system file, check the console if you're looking for debug info\notherwise hit 'ok' to exit")
+
+# not for export
+del screenshot_dir

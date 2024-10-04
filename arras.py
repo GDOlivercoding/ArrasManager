@@ -1,7 +1,7 @@
 from init import (
     mbox,
     datetime, date,
-    os, tb, sd,
+    tb, sd,
 
     Settings,
     Never,
@@ -12,9 +12,10 @@ from init import (
     dump, load,
     create_dict,
     perf_counter, sleep,
+    os_startfile,
     get_clipboard,
 
-    NONE, SINGLE, BOTH, NO_EXCEPTION, ContentsType,
+    NONE, SINGLE, BOTH, NO_EXCEPTION, ContentsType, Path,
 
     regions,
     file_settings,
@@ -99,7 +100,7 @@ class CodeData:
 
         return region 
 
-    def construct_dirname(self) -> str:
+    def construct_dirname(self) -> Path:
         cur_date = str(datetime.now()).split(" ")[0].split("-")
         del cur_date[0]
         month, day = cur_date
@@ -107,7 +108,7 @@ class CodeData:
         formatted = f"{month}.{day}."
         self.datetime = formatted
 
-        return f"{formatted} {self.score} {self.cls}"
+        return Path(f"{formatted} {self.score} {self.cls}").joinpath(Path.cwd())
 
 
 # -------------------------------------------------------------------------
@@ -116,107 +117,53 @@ class CodeData:
 
 
 class FileIO:
-    def __init__(self, ctx: CodeData, data: Settings) -> None:
-        self.ctx = ctx
+    def __init__(self, ctx: CodeData, data: Settings) -> None:  
+        # this is QOL for the writer class
+        # having multiple levels of attributes is annoying
+        # but in my evaluation, its the best
+        # when we attribute it to self so the write class
+        # can access it
+        self.ctx = ctx 
+
+        self.code, self.dirname = ctx.code, ctx.dirname
         self.data = data
-        self.message: str | Literal[False] = False
 
-        self._dir = self.create_dir()
+        self.dirname.mkdir(exist_ok=True)
 
-        if self._dir is not None:
-            self.code_file()
-            self.filenames = self.add_ss(self._dir)
+        with self.dirname.joinpath("code.txt").open("w") as file:
+            file.write(self.code)
 
-        WriteUnclaimed(data, self.ctx.code)
+        self.filenames = self.add_ss()
 
-    def code_file(self):
-        with open(
-            os.path.join(self.ctx.dirname, "code.txt"), "w", encoding="utf-8"
-        ) as file:
-            file.write(self.ctx.code)
+        WriteUnclaimed(data, self.code)
 
-    def create_dir(self) -> str | None:
-        # create_dir actually just returns str, but my type checker doesn't know calling
-        # ExceptionHandler or WriteDown returns Never (both call the exit() function)
-
-        try:
-            os.chdir(os.path.dirname(os.path.abspath(__file__)))
-            os.chdir(self.ctx.gamemode)
-                      
-            if not os.path.exists(self.ctx.dirname):
-                os.mkdir(self.ctx.dirname)
-            self.abspath = os.path.abspath(self.ctx.dirname)  
-
-            return os.path.join(os.getcwd(), ctx.dirname)
-
-        except FileNotFoundError as f:
-            ExceptionHandler(
-                f"System cannot find the gamemode directory, either it doesn't exist or has a different name: dir: {self.ctx.gamemode}"
-            )
-
-        except PermissionError as p:
-            ExceptionHandler(
-                f"System doesn't have enough permissions to access needed files, please move the software to a more common place, dir: {self.ctx.gamemode}"
-            )
-
-        except Exception as e:
-            ExceptionHandler(
-                f"An Unrecognized Error Occured, please report this to the software owner, dir: {self.ctx.gamemode},\ntraceback: {str(e)}"
-            )
-
-    def add_ss(self, _dirname: str) -> tuple[str | None, str | None]: # not a type hinting error
+    def add_ss(self) -> tuple[Path | None, Path | None]: # not a type hinting error
 
         if self.data.pic_export == NONE:  # do not run this function if the user wishes to not save any death ss
             return (None, None)
 
-        try:
-            os.chdir(self.data.ss_dir)
-        except FileNotFoundError as e:
-            ExceptionHandler(
-                f"Screenshot directory doesn't exist, please go to modify.py and set it with the instructions"
-            )
-        except Exception as e:
-            ExceptionHandler(
-                f"An Error Occured, please report this to the software owner, export the logdata file and send it to the owner, dir: {self.data.ss_dir}, traceback: {str(e)}"
-            )
+        if not self.data.ss_dir.exists():
+            # TODO: figure out what to do if the screenshot directory doesnt exist
+            raise FileNotFoundError("Screenshot directory doesnt exist")
 
-        sorted_files = [f for f in os.listdir() if os.path.isfile(f)]
-        sorted_files.sort(
-            key=os.path.getctime, reverse=True
-        )  # my type checker gets annoyed if we dont split this into 2 lines
-
-        abs_files: tuple[str, str] = (
-            os.path.abspath(sorted_files[0]),
-            os.path.abspath(sorted_files[1]),
-        )
-        ss1, ss2 = (sorted_files[0], sorted_files[1])
-
-        os.chdir(_dirname)
-        #print(f"{abs_files=}\nss: {ss1, ss2}\n{self.data.pic_export}\n{os.getcwd()=}")
-
+        # here get the latest created files from the screenshot directory
+        new = {file.stat().st_birthtime: file for file in self.data.ss_dir.iterdir()}
+        ss1, ss2 = sorted(new.values(), reverse=True)[:2]
 
         if data.pic_export == BOTH:
-
-            try:
-                for file in abs_files:
-                    move(file, os.getcwd())
-            
-                if os.path.getsize(ss1) < os.path.getsize(ss2):
-                    os.rename(ss1, f"{data.fullscreen_ss}.png")
-                    os.rename(ss2, f"{data.windowed_ss}.png")
-                else:
-                    os.rename(ss2, f"{data.fullscreen_ss}.png")
-                    os.rename(ss1, f"{data.windowed_ss}.png")
-            except:     
-                self.message = tb.format_exc()
+            # we rename the files first since pathlib.Path 
+            # will return the new renamed file path
+            # this is not good since the moving operation is the one more likely
+            # to fail
+            ss1.rename(self.data.fullscreen_ss)
+            ss2.rename(self.data.windowed_ss)
+            for f in (ss1, ss2):
+                move(f, self.data.ss_dir)       
 
         elif data.pic_export == SINGLE: 
-
-            try:
-                move(abs_files[0], os.getcwd())
-                os.rename(ss1, f"{data.single_ss}.png")
-            except:
-                self.message = tb.format_exc()
+            # same as above
+            ss1.rename(self.data.single_ss)
+            move(ss1, self.data.ss_dir)
 
         else:
             ExceptionHandler(f"Picture export integer isn't in the allowed range, integer: {data.pic_export}")
@@ -244,21 +191,18 @@ class ExceptionHandler:
 
     def write_exception(self) -> Never:
 
-        if not os.path.exists(file_logdata):
-            with open(
-                os.path.join(base_dir, "Desktop", f"{date.today()} ArrasErr.log"),
-                "w",
-                encoding="utf-8",
-            ) as file:
+        if not file_logdata.exists():
+            with base_dir.joinpath("Desktop", f"{date.today()} ArrasErr.log").open("w") as file:
                 file.writelines(self.message.strip() + "\n")
 
             self.display_exception(
-                "Logdata file doesn't exist, the traceback has been written on your desktop instead,\nto fix this problem, please run the installer and select the 'no' option"
+                "Logdata file doesn't exist, the traceback has been written on your desktop instead,"
+                "\nto fix this problem, please run the installer and select the repair data files option"
             )
             if self.kill:
                 exit()
 
-        with open(file_logdata, "r", encoding="utf-8") as file:
+        with file_logdata.open("r") as file:
             contents = file.readlines()
 
         try:
@@ -278,20 +222,19 @@ class ExceptionHandler:
 
         contents.append(self.info_string())
 
-        with open(file_logdata, "w", encoding="utf-8") as newfile:
+        with file_logdata.open("w") as newfile:
             newfile.writelines(contents)
         exit()
 
     def info_string(self) -> str:
         exc = tb.format_exc().strip()
         
-
         BIG_STRING = f"""
 ------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------
 arras.py instance at {str(datetime.now()).split(".")[0]}, instance number {self.dummy}:
 
-{"An unrecognized" if exc != NO_EXCEPTION else "A recognized"} Exception in arras.py occured at {str(datetime.now()).split(".")[0]}
+{"An unrecognized" if exc != NO_EXCEPTION else "A recognized"} exception in arras.py occured at {str(datetime.now()).split(".")[0]}
 
 message:
     {self.message.replace("\n", "\n    ")}
@@ -312,10 +255,6 @@ class WriteDown:
         self.data = io.data
         self.io = io
 
-        self.text: str | Literal[False] = io.message
-        # i dont like this, i will replace this
-        # this is no good
-
         self.contents = self.read_logdata()
 
         self.dummy = self.get_report_int()
@@ -325,7 +264,7 @@ class WriteDown:
         self.write_logdata(self.contents)
 
     def read_logdata(self) -> list[str]:
-        with open(file_logdata, "r", encoding="utf-8") as file:
+        with file_logdata.open("w") as file:
             return file.readlines()
 
     def write_logdata(self, to_write: list[str]) -> Never:
@@ -349,11 +288,10 @@ class WriteDown:
         BIG_STRING: str = f"""
 -----------------------------------------------------------------
 -----------------------------------------------------------------
-{"An ignored file error occured:\n   " + self.text if self.text else "\r"}
 arras.py instance at {str(datetime.now()).split(".")[0]}, instance number {self.dummy}:
 
-Path: {self.ctx.dirname}
-Sub-path: {self.ctx.gamemode}
+Path: {self.ctx.dirname.stem}
+Full-path: {self.io.dirname}
 picture1: {self.io.filenames[0]}
 picture2: {self.io.filenames[1]}
 
@@ -376,6 +314,7 @@ runtime in minutes: {self.ctx.runtime // 60}min
 
 """
         return BIG_STRING
+    
 
 
 class WriteUnclaimed:
@@ -392,10 +331,10 @@ class WriteUnclaimed:
 
         self.contents.unclaimed[self.code] = datetime.isoformat(datetime.now()) # type: ignore "unclaimed" is a dictionary
 
-        with open(file_settings, "w", encoding="utf-8") as file:
-            dump(fp=file, obj=self.contents.get_dict())
+        with file_settings.open("w") as file:
+            dump(obj=self.contents.get_dict(), fp=file)
 
-class EnabledAutomation:
+class _EnabledAutomation:
     """this is the implementation for the absolute automation but there a question on how do we receive the code itself"""
     # TODO: figure out how to get the code im so braindead right now
 
@@ -428,7 +367,7 @@ class EnabledAutomation:
 # ---------------------------------------------------------------------------------
 
 
-if not os.path.exists(file_settings):
+if not file_settings.exists():
 
     try: raise FileNotFoundError(f"FileNotFoundError: Path (File) '{file_settings}' doesn't exist")
     except FileNotFoundError: ...
@@ -438,10 +377,8 @@ if not os.path.exists(file_settings):
         "Cannot find settings file\nplease run the installer and select the 'no' option to fix this problem\nnote that all settings will be set to default\nand the entire logging file will be reset if you do so"
     )
 
-with open(file_settings, "r", encoding="utf-8") as file:
-    contents: dict[str, ContentsType] = load(file)
-
-data = create_dict(contents)
+with file_settings.open("r") as file:
+    data = create_dict(load(file))
 
 #if data.automation:
 #    if data.confirmation:
@@ -461,7 +398,7 @@ if len(code.split(":")) < 10:
 ctx = CodeData(code)
 
 if data.confirmation:
-    if mbox.askyesno(title="Confirmation", message="Are you sure you want to create a save?") != True:
+    if not mbox.askyesno(title="Confirmation", message="Are you sure you want to create a save?"):
         exit()
 
 try:
@@ -471,7 +408,7 @@ try:
 
     try:
         if data.open_dirname:
-            os.startfile(os.path.abspath(var.abspath))
+            os_startfile(var.dirname)
     except:
         ExceptionHandler("An internal error has occured when trying to show the directory location\nreport this to the owner\nnote that everything went well, there's nothing to fear", kill=False)
         WriteDown(var)
