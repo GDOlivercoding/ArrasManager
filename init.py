@@ -210,10 +210,7 @@ def format_score(raw_i: int, /) -> str:
             )
 
 # contains defaults for Settings object
-write: dict[str, ContentsType] = {}
-
-for key, value in zip(settings_keys, settings_base_values, strict=True):
-    write[key] = value
+write: dict[str, ContentsType] = {k: v for k, v in zip(settings_keys, settings_base_values, strict=True)}
 
 # we give out some info if we run the file directly
 if __name__ == "__main__":
