@@ -46,8 +46,11 @@ if __name__ != "__main__":
 class CodeData:
     """contains non persistent data"""
 
-    def __init__(self, code: str, /) -> None:
+    # guard
+    instantiated = False
 
+    def __init__(self, code: str, /) -> None:
+        CodeData.instantiated = True
         self.code = code
 
         self.extract_code(self.code.split(":"))
@@ -121,11 +124,10 @@ class CodeData:
 
 class FileIO:
     def __init__(self) -> None:  
-        # this is QOL for the writer class
-        # having multiple levels of attributes is annoying
-        # but in my evaluation, its the best
-        # when we attribute it to self so the write class
-        # can access it
+        if not CodeData.instantiated:
+            raise ValueError("CodeData not instantiated")
+        elif not Settings.__instances__:
+            raise ValueError("Settings not instantiated")
 
         ctx.dirname.mkdir(exist_ok=True)
 
@@ -193,7 +195,7 @@ class ExceptionHandler:
     def write_exception(self) -> Never:
 
         if not file_logdata.exists():
-            with base_dir.joinpath("Desktop", f"{date.today()} ArrasErr.log").open("w") as file:
+            with (base_dir / "Desktop" / f"{date.today()} ArrasErr.log").open("w") as file:
                 file.writelines(self.message.strip() + "\n")
 
             self.display_exception(

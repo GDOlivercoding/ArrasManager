@@ -32,7 +32,7 @@ from tkinter import (
 from shutil import move
 from sys import exit
 from datetime import datetime, date, timedelta
-from typing import Never, Callable, Protocol, overload, Any, Literal, Final, Iterable
+from typing import ClassVar, Never, Callable, Protocol, overload, Any, Literal, Final, Iterable
 from json import load, dump as _dump
 from os import startfile as os_startfile
 import os
@@ -168,6 +168,13 @@ class Settings:
     def_time: int = 5 * 60
     open_dirname: bool = False
     unclaimed: dict[str, str] = field(default_factory=dict)
+
+    # guard
+    # dunder to be ignored
+    __instances__: ClassVar[int] = 0
+
+    def __post_init__(self):
+        Settings.__instances__ += 1
 
     def get_dict(self) -> dict[str, ContentsType]:
         """Return the Settings object converted to a dictionary and ready to go!
