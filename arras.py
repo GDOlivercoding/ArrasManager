@@ -1,4 +1,6 @@
 from init import (
+    Gamemode,
+    Region,
     mbox,
     datetime, date,
     tb, sd,
@@ -71,7 +73,7 @@ class CodeData:
         self.region = self.match_region()
         self.dirname = self.construct_dirname()
 
-    def match_gamemode(self) -> str:
+    def match_gamemode(self) -> Gamemode:
         """return the gamemode based on its name"""
 
         gamemode = "Normal"
@@ -84,21 +86,22 @@ class CodeData:
             if self.gamemode_tag.startswith(tag):
                 gamemode = mode
 
-        return gamemode
+        return gamemode # type: ignore
 
-    def match_region(self) -> str:
+    def match_region(self) -> Region:
         region = None
 
         for k, v in regions.items():
-            if self.server[1::][:1:] == k:
+            if self.server[1] == k:
                 region = v
+                break
 
         if region is None:
             ExceptionHandler(f"The region has not been found, this is an internal error, server: {self.server}")
 
             exit() # this code is unreachable but its for my type checker
 
-        return region 
+        return region # type: ignore
 
     def construct_dirname(self) -> Path:
         cur_date = str(datetime.now()).split(" ")[0].split("-")
@@ -117,37 +120,33 @@ class CodeData:
 
 
 class FileIO:
-    def __init__(self, ctx: CodeData, data: Settings) -> None:  
+    def __init__(self) -> None:  
         # this is QOL for the writer class
         # having multiple levels of attributes is annoying
         # but in my evaluation, its the best
         # when we attribute it to self so the write class
         # can access it
-        self.ctx = ctx 
 
-        self.code, self.dirname = ctx.code, ctx.dirname
-        self.data = data
+        ctx.dirname.mkdir(exist_ok=True)
 
-        self.dirname.mkdir(exist_ok=True)
-
-        with self.dirname.joinpath("code.txt").open("w") as file:
-            file.write(self.code)
+        with (ctx.dirname / "code.txt").open("w") as file:
+            file.write(ctx.code)
 
         self.filenames = self.add_ss()
 
-        WriteUnclaimed(data, self.code)
+        WriteUnclaimed(data, ctx.code)
 
     def add_ss(self) -> tuple[Path | None, Path | None]: # not a type hinting error
 
-        if self.data.pic_export == NONE:  # do not run this function if the user wishes to not save any death ss
+        if data.pic_export == NONE:  # do not run this function if the user wishes to not save any death ss
             return (None, None)
 
-        if not self.data.ss_dir.exists():
+        if not data.ss_dir.exists():
             # TODO: figure out what to do if the screenshot directory doesnt exist
             raise FileNotFoundError("Screenshot directory doesnt exist")
 
         # here get the latest created files from the screenshot directory
-        new = {file.stat().st_birthtime: file for file in self.data.ss_dir.iterdir()}
+        new = {file.stat().st_birthtime: file for file in data.ss_dir.iterdir()}
         ss1, ss2 = sorted(new.values(), reverse=True)[:2]
 
         if data.pic_export == BOTH:
@@ -155,20 +154,22 @@ class FileIO:
             # will return the new renamed file path
             # this is not good since the moving operation is the one more likely
             # to fail
-            ss1.rename(self.data.fullscreen_ss)
-            ss2.rename(self.data.windowed_ss)
+            # resulting in more damage
+            # if the moving operation fails
+            ss1.rename(data.fullscreen_ss)
+            ss2.rename(data.windowed_ss)
             for f in (ss1, ss2):
-                move(f, self.data.ss_dir)       
+                move(f, data.ss_dir)       
 
         elif data.pic_export == SINGLE: 
             # same as above
-            ss1.rename(self.data.single_ss)
-            move(ss1, self.data.ss_dir)
+            ss1.rename(data.single_ss)
+            move(ss1, data.ss_dir)
 
         else:
             ExceptionHandler(f"Picture export integer isn't in the allowed range, integer: {data.pic_export}")
 
-        return (ss1, ss2) if self.data.pic_export == BOTH else (ss1, None)
+        return (ss1, ss2) if data.pic_export == BOTH else (ss1, None)
 
 
 #  --------------------------------------------------
@@ -250,11 +251,7 @@ full stacktrace:
 
 
 class WriteDown:
-    def __init__(self, io: FileIO) -> None:
-        self.ctx = io.ctx
-        self.data = io.data
-        self.io = io
-
+    def __init__(self) -> None:
         self.contents = self.read_logdata()
 
         self.dummy = self.get_report_int()
@@ -290,32 +287,30 @@ class WriteDown:
 -----------------------------------------------------------------
 arras.py instance at {str(datetime.now()).split(".")[0]}, instance number {self.dummy}:
 
-Path: {self.ctx.dirname.stem}
-Full-path: {self.io.dirname}
-picture1: {self.io.filenames[0]}
-picture2: {self.io.filenames[1]}
+Path: {ctx.dirname.stem}
+Full-path: {ctx.dirname}
+picture1: {var.filenames[0]}
+picture2: {var.filenames[1]}
 
 Settings:
-> Confirmation: {self.data.confirmation}
-> pic_export: {self.data.pic_export}
-> screenshot_directory: {self.data.ss_dir}
+> Confirmation: {data.confirmation}
+> pic_export: {data.pic_export}
+> screenshot_directory: {data.ss_dir}
 
 Data:
-code: {self.ctx.code}
-server: {self.ctx.server}
-gamemode: {self.ctx.gamemode}
-region: {self.ctx.region}
-tank class: {self.ctx.cls}
-tank build: {self.ctx.build}
-total score: {self.ctx.score}
+code: {ctx.code}
+server: {ctx.server}
+gamemode: {ctx.gamemode}
+region: {ctx.region}
+tank class: {ctx.cls}
+tank build: {ctx.build}
+total score: {ctx.score}
 
-runtime in hours: {self.ctx.runtime / 3600:.1f}h
-runtime in minutes: {self.ctx.runtime // 60}min
+runtime in hours: {ctx.runtime / 3600:.1f}h
+runtime in minutes: {ctx.runtime // 60}min
 
 """
         return BIG_STRING
-    
-
 
 class WriteUnclaimed:
     """helper to write down the code for the unclaimed codes list for convenience
@@ -402,19 +397,19 @@ if data.confirmation:
         exit()
 
 try:
-    var = FileIO(ctx, data)
+    var = FileIO()
 
     mbox.showinfo(title="Success", message="Successfully created a save!")
 
     try:
         if data.open_dirname:
-            os_startfile(var.dirname)
+            os_startfile(ctx.dirname)
     except:
         ExceptionHandler("An internal error has occured when trying to show the directory location\nreport this to the owner\nnote that everything went well, there's nothing to fear", kill=False)
-        WriteDown(var)
+        WriteDown()
 
 except Exception as e:
     ExceptionHandler(f"A critical internal error has occured when attempting file IO operations\nreport this to the owner immediately\nmake sure to backup the code and the screenshot\nmessage: {str(e)}\ntraceback can be found in the logger file")
     exit() # code unreachable
 
-WriteDown(var)
+WriteDown()

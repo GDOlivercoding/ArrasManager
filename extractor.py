@@ -1,6 +1,6 @@
 from tkinter import *  # type: ignore[wildcard]
 from tkinter import ttk, simpledialog as sd, messagebox as mbox
-from init import format_score
+from init import Gamemode, Region, format_score
 from typing import Literal, Callable, Any
 
 regions: dict[str, str] = {
@@ -10,16 +10,16 @@ regions: dict[str, str] = {
     "o": "Oceania",
 }
 
-def match_region(server: str) -> str:
+def match_region(server: str) -> Region:
         region = "Unknown"
 
         for k, v in regions.items():
             if server[1::][:1:] == k:
                 region = v
 
-        return region 
+        return region # type: ignore
 
-def match_gamemode(server_name: str) -> Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"]:
+def match_gamemode(server_name: str) -> Gamemode:
         """return the gamemode based on its name"""
 
         gamemode = "Normal"

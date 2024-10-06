@@ -93,6 +93,9 @@ regions: dict[str, str] = {
     "o": "Oceania",
 }
 
+Region = Literal["Europe", "US West", "US Central", "Oceania"]
+Gamemode = Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"]
+
 settings_keys: list[str] = [    
     "fullscreen_ss",
     "windowed_ss",
