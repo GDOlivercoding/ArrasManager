@@ -61,8 +61,8 @@ def repair_all():
 
     try:
         int(contents[0])
-    except ValueError:
-        contents[0] = str(0)
+    except IndexError:
+        contents.append("0")
         with open(file_logdata, "w") as file:
             file.writelines(contents)
 

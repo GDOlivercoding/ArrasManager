@@ -28,6 +28,7 @@ from tkinter import (
 
 from shutil import move
 from sys import exit
+import sys
 from datetime import datetime, date, timedelta
 from typing import (
     ClassVar,
@@ -47,6 +48,8 @@ from pathlib import Path
 import traceback as tb
 from dataclasses import dataclass, field
 from time import perf_counter, sleep
+
+sys.getdefaultencoding()
 
 # checking dependencies (not required)
 try:
@@ -184,6 +187,7 @@ class Settings:
     __instances__: ClassVar[int] = 0
 
     def __post_init__(self):
+        self.ss_dir = Path(self.ss_dir)
         Settings.__instances__ += 1
 
     def get_dict(self) -> dict[str, ContentsType]:

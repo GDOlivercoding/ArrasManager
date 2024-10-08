@@ -688,8 +688,8 @@ reset_stgs_button.pack(anchor="nw", pady=(20, 0))
 logger_label = Label(tab3, text="Logger file", font=("great vibes", 30))
 logger_label.pack(anchor="nw", pady=(20, 0))
 
-if os.path.exists(file_logdata):
-    with open(file_logdata, "r", encoding="utf-8") as file:
+if file_logdata.exists():
+    with file_logdata.open("r", encoding="utf-8") as file:
         __contents = file.readlines()
 
     del __contents[0]
@@ -914,7 +914,7 @@ def Save(
         close_val.append(int(i))
 
     try:
-        dummy = int(contents[0])
+        dummy = int(contents[0].strip())
     except ValueError:
         dummy = 0
 

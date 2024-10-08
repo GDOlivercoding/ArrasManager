@@ -8,7 +8,6 @@ from init import (
     sd,
     Settings,
     Never,
-    Literal,
     format_score,
     move,
     dump,
@@ -22,14 +21,12 @@ from init import (
     SINGLE,
     BOTH,
     NO_EXCEPTION,
-    ContentsType,
     Path,
     regions,
     file_settings,
     file_logdata,
     import_type,
     base_dir,
-    Any,
 )
 
 # this file is not meant to be imported, so if i accidentally do, i find the issue faster
@@ -158,11 +155,11 @@ class FileIO:
 
         if not data.ss_dir.exists():
             # TODO: figure out what to do if the screenshot directory doesnt exist
-            raise FileNotFoundError("Screenshot directory doesnt exist")
+            raise FileNotFoundError(f"Screenshot directory doesnt exist, directory={data.ss_dir}")
 
         # here get the latest created files from the screenshot directory
         new = {file.stat().st_birthtime: file for file in data.ss_dir.iterdir()}
-        ss1, ss2 = sorted(new.values(), reverse=True)[:2]
+        ss1, ss2 = [new[s] for s in sorted(new.keys(), reverse=True)[:2]]
 
         if data.pic_export == BOTH:
             # we rename the files first since pathlib.Path
@@ -171,15 +168,15 @@ class FileIO:
             # to fail
             # resulting in more damage
             # if the moving operation fails
-            ss1.rename(data.fullscreen_ss)
-            ss2.rename(data.windowed_ss)
+            ss1 = ss1.rename(data.fullscreen_ss + ss1.suffix)
+            ss2 = ss2.rename(data.windowed_ss + ss2.suffix)
             for f in (ss1, ss2):
-                move(f, data.ss_dir)
+                move(f, ctx.dirname)
 
         elif data.pic_export == SINGLE:
             # same as above
-            ss1.rename(data.single_ss)
-            move(ss1, data.ss_dir)
+            ss1 = ss1.rename(data.single_ss + ss1.suffix)
+            move(ss1, ctx.dirname)
 
         else:
             ExceptionHandler(
@@ -195,7 +192,7 @@ class FileIO:
 
 
 class ExceptionHandler:
-    def __init__(self, message: str, kill=True) -> Never:
+    def __init__(self, message: str, kill=True) -> None:
         self.message = message
         self.kill = kill
 
@@ -207,7 +204,7 @@ class ExceptionHandler:
             title="ERROR", message=text if text is not None else self.message
         )
 
-    def write_exception(self) -> Never:
+    def write_exception(self) -> None:
 
         if not file_logdata.exists():
             with (base_dir / "Desktop" / f"{date.today()} ArrasErr.log").open(
@@ -281,7 +278,7 @@ class WriteDown:
         self.write_logdata(self.contents)
 
     def read_logdata(self) -> list[str]:
-        with file_logdata.open() as file:
+        with file_logdata.open("r") as file:
             return file.readlines()
 
     def write_logdata(self, to_write: list[str]) -> Never:
@@ -291,15 +288,14 @@ class WriteDown:
 
     def get_report_int(self) -> int:
         try:
-            dummy = int(self.contents[0])
-
+            dummy = int(self.contents[0].strip())
         except ValueError:
-            dummy = 1
+            dummy = 0
         except IndexError:
             self.contents.append("1")
-            dummy = 1
+            dummy = 0
 
-        return dummy
+        return dummy + 1
 
     def create_data(self):
         BIG_STRING: str = f"""
