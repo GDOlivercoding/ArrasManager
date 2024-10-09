@@ -5,7 +5,6 @@ from init import (
     datetime,
     date,
     tb,
-    sd,
     Settings,
     Never,
     ClassVar,
@@ -14,8 +13,6 @@ from init import (
     dump,
     load,
     create_dict,
-    perf_counter,
-    sleep,
     os_startfile,
     get_clipboard,
     NONE,
@@ -37,18 +34,10 @@ if __name__ != "__main__":
         message=f"This file is NOT meant to be imported, but rather ran directly! process name: {__name__=}",
     )
 
-    raise SystemExit(
-        f"This file is NOT meant to be imported, but rather ran directly! process name: {__name__=}"
-    )
+    raise SystemExit
 
 # sample code
 # (6f0cb12f:#eo:e5forge:Arbitrator-Astronomic:0/2/6/10/10/10/10/12/0/0:7148698:20683:71:13:4:5017:62:1710762682:JDo5u44GPYop3lwZ)
-
-# static variables
-# -------------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------------
-
 
 class CodeData:
     """contains non persistent data"""
@@ -336,59 +325,17 @@ class WriteUnclaimed:
     """helper to write down the code for the unclaimed codes list for convenience
     called from the FileIO class
     """
-
     def __init__(self, contents: Settings, code: str, /) -> None:
-        self.code = code
-        self.contents = contents
 
-        if self.code in self.contents.unclaimed.keys():
+        if code in contents.unclaimed.keys():
             mbox.showwarning(
                 title="WARNING",
                 message="This code has already been registered!\nIt is registered as 'unclaimed' in the Unclaimed tab of modify.py!",
             )
-
-        self.contents.unclaimed[self.code] = datetime.isoformat(datetime.now())  # type: ignore "unclaimed" is a dictionary
+        contents.unclaimed[code] = datetime.isoformat(datetime.now())  # type: ignore "unclaimed" is a dictionary
 
         with file_settings.open("w") as file:
-            dump(obj=self.contents.get_dict(), fp=file)
-
-
-class _EnabledAutomation:
-    """this is the implementation for the absolute automation but there a question on how do we receive the code itself"""
-
-    # TODO: figure out how to get the code im so braindead right now
-
-    def __init__(self, data: Settings) -> None:
-        self.data = data
-        if not import_type:
-            mbox.showerror(
-                "module not downloaded",
-                "'Pyperclip' is a required module to access this functionality, please read the README file",
-            )
-            exit()
-
-    def wait(self):
-        if self.data.ask_time:
-            sleep_time = sd.askinteger(
-                title="Wait time",
-                prompt="Amount of time to wait in seconds\nbefore attempting to save",
-            )
-            if sleep_time is None:
-                mbox.showwarning("App closed", "Saving cancelled!")
-                exit()
-
-        else:
-            sleep_time = self.data.def_time
-
-        before = perf_counter()
-        mbox.showinfo(
-            f"The app is now going to wait {self.data.def_time}s before saving!"
-        )
-        after = perf_counter()
-
-        wait_time = (after - before) // 1
-        sleep(sleep_time - wait_time)
-
+            dump(obj=contents.get_dict(), fp=file)
 
 # ---------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------
@@ -396,12 +343,11 @@ class _EnabledAutomation:
 # ---------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------
 
-
 if not file_settings.exists():
 
     try:
         raise FileNotFoundError(
-            f"FileNotFoundError: Path (File) '{file_settings}' doesn't exist"
+            f"Path (File) '{file_settings}' doesn't exist"
         )
     except FileNotFoundError:
         ...
@@ -414,14 +360,14 @@ if not file_settings.exists():
 with file_settings.open("r") as file:
     data = create_dict(load(file))
 
-# if data.automation:
-#    if data.confirmation:
-#        if mbox.askyesno(title="Confirmation", message="Are you sure you want to create a save?") != True:
-#            exit()
-#        EnabledAutomation(data)
+if data.confirmation:
+    if not mbox.askyesno(
+        title="Confirmation", message="Are you sure you want to create a save?"
+    ):
+        exit()
 
 if import_type:
-    code: str = get_clipboard()
+    code = get_clipboard()
 else:
     code = input("code> ")
 
@@ -432,12 +378,6 @@ if len(code.split(":")) < 10:
     )
 
 ctx = CodeData(code)
-
-if data.confirmation:
-    if not mbox.askyesno(
-        title="Confirmation", message="Are you sure you want to create a save?"
-    ):
-        exit()
 
 try:
     var = FileIO()
