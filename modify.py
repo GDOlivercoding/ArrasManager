@@ -897,7 +897,7 @@ def Save(
     with open(file_settings, "w", encoding="utf_8") as file:
         dump(data.get_dict(), fp=file)
     # if logdata was set to be reset do not write to it
-    if was_deleted is True:
+    if was_deleted:
         exit()
 
     # ------------------------------------------------------------
@@ -953,8 +953,8 @@ window.protocol(
         pic_scale,
         scl_def_automation,
         open_val,
-        windowed,
         fullscreen,
+        windowed,
         single,
     ),
 )

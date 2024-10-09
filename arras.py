@@ -8,6 +8,7 @@ from init import (
     sd,
     Settings,
     Never,
+    ClassVar,
     format_score,
     move,
     dump,
@@ -53,7 +54,7 @@ class CodeData:
     """contains non persistent data"""
 
     # guard
-    instantiated = False
+    instantiated: ClassVar[bool] = False
 
     def __init__(self, code: str, /) -> None:
         CodeData.instantiated = True
@@ -148,9 +149,7 @@ class FileIO:
 
     def add_ss(self) -> tuple[Path | None, Path | None]:  # not a type hinting error
 
-        if (
-            data.pic_export == NONE
-        ):  # do not run this function if the user wishes to not save any death ss
+        if data.pic_export == NONE:  # do not run this function if the user wishes to not save any death ss
             return (None, None)
 
         if not data.ss_dir.exists():
@@ -158,8 +157,11 @@ class FileIO:
             raise FileNotFoundError(f"Screenshot directory doesnt exist, directory={data.ss_dir}")
 
         # here get the latest created files from the screenshot directory
-        new = {file.stat().st_birthtime: file for file in data.ss_dir.iterdir()}
+        new = {file.stat.st_birthtime: file for file in data.ss_dir.iterdir()}
         ss1, ss2 = [new[s] for s in sorted(new.keys(), reverse=True)[:2]]
+
+        if ss1.stat.st_size > ss2.stat.st_size:
+            ss1, ss2 = ss2, ss1
 
         if data.pic_export == BOTH:
             # we rename the files first since pathlib.Path
@@ -168,6 +170,7 @@ class FileIO:
             # to fail
             # resulting in more damage
             # if the moving operation fails
+
             ss1 = ss1.rename(data.fullscreen_ss + ss1.suffix)
             ss2 = ss2.rename(data.windowed_ss + ss2.suffix)
             for f in (ss1, ss2):

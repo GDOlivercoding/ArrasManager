@@ -44,7 +44,7 @@ from typing import (
 from json import load, dump as _dump
 from os import startfile as os_startfile
 import os
-from pathlib import Path
+import pathlib
 import traceback as tb
 from dataclasses import dataclass, field
 from time import perf_counter, sleep
@@ -74,6 +74,11 @@ try:
     gw_import: bool = True
 except ImportError:
     gw_import = False
+
+class Path(pathlib.Path):
+    @property
+    def stat(self): # type: ignore
+        return super().stat()
 
 base_dir: Path = Path.home()
 dir_arras: Path = base_dir / "AppData" / "Local" / "Arras"
