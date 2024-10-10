@@ -146,10 +146,10 @@ class FileIO:
             raise FileNotFoundError(f"Screenshot directory doesnt exist, directory={data.ss_dir}")
 
         # here get the latest created files from the screenshot directory
-        new = {file.stat.st_birthtime: file for file in data.ss_dir.iterdir()}
+        new = {file.st.st_birthtime: file for file in data.ss_dir.iterdir()}
         ss1, ss2 = [new[s] for s in sorted(new.keys(), reverse=True)[:2]]
 
-        if ss1.stat.st_size > ss2.stat.st_size:
+        if ss1.st.st_size > ss2.st.st_size:
             ss1, ss2 = ss2, ss1
 
         if data.pic_export == BOTH:
@@ -320,7 +320,6 @@ runtime in minutes: {ctx.runtime // 60}min
 """
         return BIG_STRING
 
-
 class WriteUnclaimed:
     """helper to write down the code for the unclaimed codes list for convenience
     called from the FileIO class
@@ -330,7 +329,7 @@ class WriteUnclaimed:
         if code in contents.unclaimed.keys():
             mbox.showwarning(
                 title="WARNING",
-                message="This code has already been registered!\nIt is registered as 'unclaimed' in the Unclaimed tab of modify.py!",
+                message="This code has already been registered!"
             )
         contents.unclaimed[code] = datetime.isoformat(datetime.now())  # type: ignore "unclaimed" is a dictionary
 

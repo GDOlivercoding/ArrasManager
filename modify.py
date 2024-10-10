@@ -21,6 +21,8 @@ from init import (
     # vars
     file_logdata,
     file_settings,
+    screenshot_dir,
+    base_dir,
     import_type,
     was_deleted,
     # tkinter
@@ -46,16 +48,7 @@ from init import (
     END,
 )
 
-# force self directory
-
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-_ = open_clock = f"{datetime.now():%X}"
-__ = _.split(":")
-open_val: list[int] = []
-for i in __:
-    open_val.append(int(i))
-
+open_clock = datetime.now()
 
 # main window
 window = Tk()
@@ -64,13 +57,8 @@ window.geometry("700x550")
 window.resizable(False, False)
 
 # read settings
-with open(
-    file_settings,
-    "r",  # read mode
-    encoding="utf_8",
-) as file:
+with file_settings.open("r") as file:
     data = create_dict(load(fp=file))
-
 
 # MAINHEADER:
 MainHeader = Label(
@@ -103,15 +91,13 @@ mytab.pack(anchor="nw")
 def delete_logger() -> None:
     global was_deleted  # check global environment in envs
 
-    if (
-        mbox.askyesno(
-            title="Confirmation",
-            message="Are you sure you want to delete the ENTIRE logging file? The file will still exist and log data, all of its contents WILL be deleted!",
-        )
-        != True
-    ):
+    if not mbox.askyesno(
+        title="Confirmation", 
+        message="Are you sure you want to delete the ENTIRE logging file?"
+                "The file will still exist and log data, all of its contents WILL be deleted!",
+        ):
         return
-    with open(file_logdata, "w", encoding="utf-8") as file:
+    with file_logdata.open("w") as file:
         file.write("0")
 
     was_deleted = True
@@ -143,7 +129,7 @@ def set_default(
     ):
         return
 
-    with open(file_settings, "w", encoding="utf-8") as file:
+    with file_settings.open("w") as file:
         dump(
             fp=file,
             obj={
@@ -155,26 +141,23 @@ def set_default(
 
     cb_confirmation.select()  # -> True
     pic_scale.set(0)  # -> 0  # -> False
-    data.ss_dir = Path.home() / "Pictures" / "Screenshots"
+    data.ss_dir = screenshot_dir
     cur_path.set(f"Current Path: {data.ss_dir}")
     mbox.showinfo(title="Success", message="Successfully set all options to default!")
     return
 
 
 def export_logdata() -> None:
-    if (
-        mbox.askyesno(
-            title="Confirmation",
-            message="Are you sure? This will create a copy of the log file!",
-        )
-        != True
-    ):
+    if not mbox.askyesno(
+        title="Confirmation",
+        message="Are you sure? This will create a copy of the log file!",      
+        ):
         return
 
-    with open(file_logdata, "r", encoding="utf-8") as file:
+    with file_logdata.open("r") as file:
         contents = file.readlines()
 
-    fp: str = fdialog.askdirectory(initialdir=Path.home() / "Desktop")
+    fp: str = fdialog.askdirectory(initialdir=base_dir / "Desktop")
     if not fp:
         mbox.showerror(title="No input", message="No directory selected")
         return
@@ -185,54 +168,16 @@ def export_logdata() -> None:
         title="Success",
         message="Successfully created a copy of the logger file in the desired directory!",
     )
-    return None
-
-
-def c_sub_dt(list1: list[int], list2: list[int]) -> str:
-    """returns a datetime string format
-    with the time in between the two values"""
-    rlist: list[int] = []
-
-    if list1[0] > list2[0]:
-        return "1day+"
-    else:
-        rlist.append(list2[0] - list1[0])
-
-    c = -1
-    while True:
-        c += 1
-
-        try:
-            if list1[c] > list2[c]:
-                rlist[c - 1] = int(rlist[c - 1]) + 1
-                rlist.append(list1[c] - list2[c])
-            else:
-                rlist.append(list2[c] - list1[c])
-        except IndexError:
-            break
-
-    slist: list[str] = [str(i) for i in rlist]
-
-    c = -1
-    for i in slist:
-        c += 1
-        if len(i) < 2:
-            slist[c] = "0" + i
-
-    newstring: str = ":".join(slist)
-    return str(newstring)
-
 
 def get_height(text: str) -> int:
     return len(text.split("\n"))
 
 
 def save_button_press(data: Settings) -> None:
-    with open(file_settings, "w", encoding="utf-8") as file:
+    with file_settings.open("w") as file:
         dump(fp=file, obj=data.get_dict())
 
     mbox.showinfo(title="Success", message="Settings saved")
-    return
 
 
 # ------------------------------------------------------------------------------------------
@@ -255,13 +200,6 @@ i recommend at least 1 screenshot for minimal proof
 for now you have to manually screenshot them with Win + PrtSc
 but in the future i'll make it completely automatic
 from the point when you start AFKing to save"""
-
-# NOTE: unused (setting3)
-_tickinput: str = """Create an addition line in the file that logs all data (logdata.txt),
-that prompts the user to save the code and makes it more organized when
-looking for unclaimed codes, default is False.
-The extra code claim prompt is going to shown at the end of the report in logdata.txt.
-the code is still going to be saved in the individual directory (save)."""
 
 setting3: str = """Set the directory to where the program should reach for the screenshots to save
 by default it is C:/Users/*/Pictures/Screenshots
@@ -479,38 +417,6 @@ pic_txt_widget.insert(END, setting2)
 pic_txt_widget.config(state="disabled", height=get_height(setting2), width=65)
 pic_txt_widget.pack(anchor="nw")
 
-
-# NOTE: unused setting3
-r"""
-code = BooleanVar()
-code.set(False)
-ticklbl = Checkbutton(
-    tab1,
-    text="Add an extra code to logdata.txt",
-    variable=code,
-    onvalue=True,
-    offvalue=False,
-    font=("great vibes", 15),
-    background="light green",
-    foreground="gray",
-    activebackground="green",
-    activeforeground="dark gray",
-)
-ticklbl.pack(anchor="nw")
-if data. == True:
-    contents.append("New report: set_code is True, extra code checkbutton invoked\n")
-    ticklbl.invoke()
-contents.append("\n")
-
-
-ticktext = Text(tab1)
-ticktext.insert(END, tickinput)
-ticktext.config(state="disabled", height=6, width=71)
-ticktext.pack(anchor="nw")
-
-header4 = Label(tab1, text="Setting 4:", font=("great vibes", 30))
-header4.pack(anchor="nw")"""
-
 header3 = Label(pic_dir_tab, text="Setting 3:", font=("great vibes", 30))
 header3.pack(anchor="nw")
 
@@ -645,8 +551,6 @@ inst_descriptor = Button(
 )
 inst_descriptor.pack(anchor="nw", pady=(20, 0))
 
-del descriptor_label
-
 # tab 4: view local txts
 tab4_header = Label(tab3, text="View Local Txt Files", font=("great vibes", 40))
 tab4_header.pack(anchor="center")
@@ -661,14 +565,7 @@ for item in settings.items():
 
 
 def stgs_func(data: Settings):
-
-    settings = data.get_dict()
-    store = []
-
-    for k, v in settings.items():
-        store.append(f"{k}: {v}")
-
-    view_widget(title="Settings.json", context="\n".join(store))
+    view_widget(title="Settings.json", context="\n".join(f"{k}: {v}" for k, v in data.get_dict().items()))
 
 
 view_stgs_button = Button(
@@ -689,20 +586,20 @@ logger_label = Label(tab3, text="Logger file", font=("great vibes", 30))
 logger_label.pack(anchor="nw", pady=(20, 0))
 
 if file_logdata.exists():
-    with file_logdata.open("r", encoding="utf-8") as file:
-        __contents = file.readlines()
+    with file_logdata.open("r") as file:
+        contents = file.readlines()
 
-    del __contents[0]
+    del contents[0]
 
-    contents = " ".join(__contents)
+    new_contents = " ".join(contents)
 else:
-    contents = "0"
+    new_contents = "0"
 
 logfolder_button = Button(
     tab3,
     text="View logs",
-    command=lambda contents=contents: view_widget(
-        title="Logdata.txt", context=contents
+    command=lambda new_contents=new_contents: view_widget(
+        title="Logdata.txt", context=new_contents
     ),
 )
 logfolder_button.pack(anchor="nw")
@@ -817,26 +714,6 @@ listbox.config(width=550, height=20, yscrollcommand=scrollbar.set)
 
 colored_unclaimed: dict[str, Literal["white", "yellow", "red", "black"]] = {}
 
-"""
-for code, iso in data.unclaimed.items():
-    time = datetime.fromisoformat(iso)
-    comparison = datetime.now()
-    comparison -= time
-
-    if comparison <= timedelta(days=0):
-        colored_unclaimed[code] = "black"
-
-    elif comparison <= timedelta(days=10):
-        colored_unclaimed[code] = "red"
-
-    elif comparison <= timedelta(days=30):
-        colored_unclaimed[code] = "yellow"
-
-    else:
-        colored_unclaimed[code] = "white"
-    print(code, iso, comparison)
-
-"""
 for code, iso in data.unclaimed.items():
     listbox.insert(END, code)
 
@@ -862,7 +739,6 @@ def Save(
     var_force: BooleanVar,
     scale: Scale,
     def_scale: Scale,
-    open_val: list[int],
     Ef: StringVar,
     Ew: StringVar,
     Es: StringVar,
@@ -904,14 +780,10 @@ def Save(
     # logdata block
     # ------------------------------------------------------------
 
-    with open(file_logdata, "r", encoding="utf-8") as file:
+    with file_logdata.open("r") as file:
         contents = file.readlines()
 
-    _ = close_clock = f"{datetime.now():%X}"
-    __ = _.split(":")
-    close_val: list[int] = []
-    for i in __:
-        close_val.append(int(i))
+    close_clock = datetime.now()
 
     try:
         dummy = int(contents[0].strip())
@@ -934,10 +806,10 @@ ssdir set to {data.ss_dir}
 
 modify.py ran at {open_clock}
 killed at {close_clock}
-total time spent in modify.py: {c_sub_dt(list1=open_val, list2=close_val)}
+total time spent in modify.py: {close_clock - open_clock}
 """
     contents.append(SET_TO)
-    with open(file_logdata, "w", encoding="utf-8") as file:
+    with file_logdata.open("w") as file:
         file.writelines(contents)
     exit()
 
@@ -952,7 +824,6 @@ window.protocol(
         var_force,
         pic_scale,
         scl_def_automation,
-        open_val,
         fullscreen,
         windowed,
         single,

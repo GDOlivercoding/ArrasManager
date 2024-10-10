@@ -35,6 +35,7 @@ from typing import (
     Never,
     Callable,
     Protocol,
+    Self,
     overload,
     Any,
     Literal,
@@ -55,14 +56,14 @@ sys.getdefaultencoding()
 try:
     from pyperclip import paste as get_clipboard, copy as copy_clipboard
 
-    import_type: bool = True
+    import_type = True
 except ImportError:
     import_type = False
 
 try:
     import pyautogui as pag
 
-    pag_import: bool = True
+    pag_import = True
 except ImportError:
     # mbox.showerror(title="Import Error", message="You do not have pyautogui installed\nThis app requires pyautogui to be installed\ncheck requirements.txt")
     # pag is unused for now, so it is not a requirement
@@ -71,13 +72,13 @@ except ImportError:
 try:
     from pygetwindow import getWindowsWithTitle
 
-    gw_import: bool = True
+    gw_import = True
 except ImportError:
     gw_import = False
 
 class Path(pathlib.Path):
     @property
-    def stat(self): # type: ignore
+    def st(self): # type: ignore
         return super().stat()
 
 base_dir: Path = Path.home()
@@ -93,13 +94,11 @@ SINGLE: Final = 1
 BOTH: Final = 2
 NO_EXCEPTION: Final = "NoneType: None"
 
-
 class SupportsWrite(Protocol):
     def write(self, data: Any, /) -> Any: ...
 
-
 JSONSerializable = None | bool | str | float | int | tuple | list | dict
-type ContentsType = Any | list[str] | dict[str, str]
+ContentsType = Any | list[str] | dict[str, str]
 
 regions: dict[str, str] = {
     "e": "Europe",
@@ -150,25 +149,12 @@ def dump(obj: Any, fp: SupportsWrite):
 
 
 class partial[T, **P]:
-    """
-    create a Callable with the keywords arguments predefined
-    """
-
-    def __init__(self, func: Callable[P, T], *args: Any, **kwargs: Any) -> None:
-        """
-        func parameter is the Callable to create
-        any keywords are automatically added to the arguments of the Callable
-        """
-        if not isinstance(func, type):
-            raise TypeError(f"partial expects a class reference not a {func!r}")
-
-        self.func = func
-        self.args = args
-        self.kws = kwargs
-
-    def __call__(self, *fargs: P.args, **kwds: P.kwargs) -> T:
-        return self.func(*self.args, *fargs, **self.kws, **kwds)
-
+    def __init__(self: Self, func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> None:
+        self.func: Callable[P, T] = func
+        self.args: tuple[Any, ...] = args
+        self.kwargs: dict[str, Any] = kwargs
+    def __call__(self: Self, *args: P.args, **kwargs: P.kwargs) -> T:
+        return self.func(*self.args, *args, **self.kwargs, **kwargs)
 
 @dataclass
 class Settings:
@@ -179,7 +165,7 @@ class Settings:
     single_ss: str = "ss"
     confirmation: bool = True
     pic_export: Literal[0, 1, 2] = 0
-    ss_dir: Path = Path(screenshot_dir)
+    ss_dir: Path = screenshot_dir
     automation: bool = False
     force_automation: bool = False
     ask_time: bool = False
@@ -203,7 +189,7 @@ class Settings:
         return {
             k: (
                 v
-                if isinstance(v, JSONSerializable)  # type: ignore[InvalidParameterType]
+                if isinstance(v, JSONSerializable) 
                 else str(v)
             )
             for k, v in vars(self).items()

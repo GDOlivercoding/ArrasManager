@@ -51,7 +51,7 @@ def input_code():
         display_widget(data)
 
 
-type DataTupleType = tuple[
+DataTupleType = tuple[
     str,
     str,  # code, server tag
     Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"],  # gamemode
