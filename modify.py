@@ -707,14 +707,7 @@ scrollbar.pack(side=RIGHT, fill=Y)
 listbox = Listbox(tab5, font=("great vibes", 8))
 listbox.config(width=550, height=20, yscrollcommand=scrollbar.set)
 
-# white: normal
-# yellow: half +- time expired
-# red: about to expire
-# black: expired
-
-colored_unclaimed: dict[str, Literal["white", "yellow", "red", "black"]] = {}
-
-for code, iso in data.unclaimed.items():
+for code in data.unclaimed.keys():
     listbox.insert(END, code)
 
 listbox.pack(anchor="center")
@@ -742,11 +735,13 @@ def Save(
     Ef: StringVar,
     Ew: StringVar,
     Es: StringVar,
-) -> Never:
+) -> None:
     """
     Ef: Entry Fullscreen,
     Ew: ^^^^^ Windowed,
     Es: ^^^^^ Singular"""
+
+    close_clock = datetime.now()
 
     # get values
     data.confirmation = var_confirmation.get()
@@ -755,15 +750,13 @@ def Save(
     data.force_automation = var_force.get()
 
     scale_int = scale.get()
-    data.def_time = int(
-        def_scale.get()
-    )  # i have to reconvert to int so my type checker can stfu
+    data.def_time = int(def_scale.get())  
 
     if scale_int in (0, 1, 2):
         data.pic_export = scale_int
     else:
         data.pic_export = 0
-    # data.ss_dir is modified by itself
+
 
     data.fullscreen_ss = Ef.get()
     data.windowed_ss = Ew.get()
@@ -783,15 +776,16 @@ def Save(
     with file_logdata.open("r") as file:
         contents = file.readlines()
 
-    close_clock = datetime.now()
-
     try:
         dummy = int(contents[0].strip())
     except ValueError:
         dummy = 0
+        contents[0] = "1"
+    except IndexError:
+        dummy = 0
+        contents.append("0")
 
     dummy += 1
-    contents[0] = str(dummy) + "\n"
 
     SET_TO: str = f"""
 

@@ -78,7 +78,7 @@ except ImportError:
 
 class Path(pathlib.Path):
     @property
-    def st(self): # type: ignore
+    def st(self): 
         return super().stat()
 
 base_dir: Path = Path.home()
@@ -211,28 +211,26 @@ def format_score(raw_i: int, /) -> str:
     match len(raw):
 
         case 6:  # 784_125 = 784K
-            return f"{raw[:3:]}K"
+            return f"{raw[:3]}K"
 
         case 7:  # 1_754_125 = 1.75m
-            return f"{raw[:1:]}.{raw[1::][:2:]}m"
+            return f"{raw[0]}.{raw[1:][:2]}m"
 
         case 8:  # 41_754_125 = 41.7m
-            return f"{raw[:2:]}.{raw[:3:][2::]}m"
+            return f"{raw[:2]}.{raw[:3][2:]}m"
 
         case 9:  # 241_754_125 = 241m
-            return f"{raw[:3:]}m"
+            return f"{raw[:3]}m"
 
         case 10:  # 1_241_754_125 = 1.24b
-            return f"{raw[:1:]}.{raw[1::][:2:]}b"
+            return f"{raw[0]}.{raw[1:][:2]}b"
 
         case _:
             raise ValueError(f"Score Integer isn't in the savable range: {len(raw)}")
 
 
 # contains defaults for Settings object
-write: dict[str, ContentsType] = {
-    k: v for k, v in zip(settings_keys, settings_base_values, strict=True)
-}
+write: dict[str, ContentsType] = {k: v for k, v in zip(settings_keys, settings_base_values, strict=True)}
 
 # we give out some info if we run the file directly
 if __name__ == "__main__":
