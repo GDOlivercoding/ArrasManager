@@ -258,6 +258,3 @@ if __name__ == "__main__":
         title="Not for use",
         message="This is a system file, check the console if you're looking for debug info\notherwise hit 'ok' to exit",
     )
-
-# not for export
-del screenshot_dir

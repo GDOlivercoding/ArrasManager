@@ -439,16 +439,9 @@ ss_text_widget.insert(END, setting3)
 ss_text_widget.config(state=DISABLED, height=get_height(setting3), width=80)
 ss_text_widget.pack(anchor="nw")
 
-
-# lets think how we do this
-# maybe we could make an entry field
-
-windowed, fullscreen, single = [
-    StringVar(value=data.windowed_ss, name="windowed"),
-    StringVar(value=data.fullscreen_ss, name="fullscreen"),
-    StringVar(value=data.single_ss, name="single"),
-]
-
+windowed = StringVar(value=data.windowed_ss, name="windowed")
+fullscreen = StringVar(value=data.fullscreen_ss, name="fullscreen")
+single = StringVar(value=data.single_ss, name="single")
 
 def widget_setter(var: StringVar, /, *, title: str, prompt: str):
     val = sd.askstring(title, prompt)
