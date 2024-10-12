@@ -149,7 +149,10 @@ class FileIO:
         new = {file.st.st_birthtime: file for file in data.ss_dir.iterdir()}
         ss1, ss2 = [new[s] for s in sorted(new.keys(), reverse=True)[:2]]
 
-        if ss1.st.st_size > ss2.st.st_size:
+        # if ss1 is smaller, then switch the variables
+        # this means ss1 is always going to be bigger
+        # this means that ss1 is always windowed, and ss2 is always fullscreen
+        if ss1.st.st_size < ss2.st.st_size:
             ss1, ss2 = ss2, ss1
 
         if data.pic_export == BOTH:
@@ -160,8 +163,8 @@ class FileIO:
             # resulting in more damage
             # if the moving operation fails
 
-            ss1 = ss1.rename(data.fullscreen_ss + ss1.suffix)
-            ss2 = ss2.rename(data.windowed_ss + ss2.suffix)
+            ss1 = ss1.rename(data.windowed_ss + ss1.suffix)
+            ss2 = ss2.rename(data.fullscreen_ss + ss2.suffix)
             for f in (ss1, ss2):
                 move(f, ctx.dirname)
 

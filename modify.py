@@ -443,14 +443,18 @@ windowed = StringVar(value=data.windowed_ss, name="windowed")
 fullscreen = StringVar(value=data.fullscreen_ss, name="fullscreen")
 single = StringVar(value=data.single_ss, name="single")
 
-def widget_setter(var: StringVar, /, *, title: str, prompt: str):
+def widget_setter(var: StringVar, label: Label, /, *, title: str, prompt: str):
     val = sd.askstring(title, prompt)
-    if val is not None:
+
+    # ignore non and empty strings
+    if val:
         var.set(val)
+        label.config(text=val)
 
 
-widget_caller = lambda mode: widget_setter(
+widget_caller = lambda mode, label: widget_setter(
     mode,
+    label,
     title=f"{str(mode).capitalize()}",
     prompt=f"Enter name for {str(mode)} screenshot",
 )
@@ -460,35 +464,34 @@ packer: dict = {"anchor": "nw", "pady": (0, 30)}
 displayer = partial(Label, master=pic_filenames_tab, font=("great vibes", 10))
 setter = partial(Button, master=pic_filenames_tab, text="Set")
 
-Label1 = Label(pic_filenames_tab, text="Fullscreen picture:", font=("great vibes", 20))
+Label1 = Label(pic_filenames_tab, text="Windowed picture:", font=("great vibes", 20))
 Label1.pack(anchor="nw", pady=(20, 0))
 
-windowed_setter = setter(command=lambda: widget_caller(windowed))
+windowed_displayer = displayer(text=windowed.get())
+windowed_setter = setter(command=lambda: widget_caller(windowed, windowed_displayer))
 windowed_setter.pack(anchor="nw")
 
-windowed_displayer = displayer(text=windowed.get())
 windowed_displayer.pack(**packer)
 
-Label2 = Label(pic_filenames_tab, text="Windowed picture", font=("great vibes", 20))
+Label2 = Label(pic_filenames_tab, text="Fullscreen picture", font=("great vibes", 20))
 Label2.pack(anchor="nw", pady=(20, 0))
 
-fullscreen_setter = setter(command=lambda: widget_caller(fullscreen))
+fullscreen_displayer = displayer(text=fullscreen.get())
+fullscreen_setter = setter(command=lambda: widget_caller(fullscreen, fullscreen_displayer))
 fullscreen_setter.pack(anchor="nw")
 
-fullscreen_displayer = displayer(text=fullscreen.get())
 fullscreen_displayer.pack(**packer)
 
 Label3 = Label(pic_filenames_tab, text="Singular picture", font=("great vibes", 20))
 Label3.pack(anchor="nw", pady=(20, 0))
 
-single_setter = setter(command=lambda: widget_caller(single))
+single_displayer = displayer(text=single.get())
+single_setter = setter(command=lambda: widget_caller(single, single_displayer))
 single_setter.pack(anchor="nw")
 
-single_displayer = displayer(text=single.get())
 single_displayer.pack(**packer)
 
 # Files info tab 3
-
 
 def view_widget(context: str, title: str):
     new_window = Tk()
@@ -756,7 +759,7 @@ def Save(
     data.single_ss = Es.get()
 
     # dump settings
-    with open(file_settings, "w", encoding="utf_8") as file:
+    with file_settings.open("w") as file:
         dump(data.get_dict(), fp=file)
     # if logdata was set to be reset do not write to it
     if was_deleted:
@@ -811,9 +814,9 @@ window.protocol(
         var_force,
         pic_scale,
         scl_def_automation,
-        fullscreen,
-        windowed,
-        single,
+        Ef=fullscreen,
+        Ew=windowed,
+        Es=single,
     ),
 )
 
