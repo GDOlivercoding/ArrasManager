@@ -48,8 +48,15 @@ from init import (
     END,
 )
 
-open_clock = datetime.now()
+class Value:
+    windowed: StringVar
+    fullscreen: StringVar
+    single: StringVar
 
+    
+    open_clock: datetime = datetime.now()
+    close_clock: datetime
+    
 # main window
 window = Tk()
 window.title("Modify how arras.py functions")
@@ -439,9 +446,9 @@ ss_text_widget.insert(END, setting3)
 ss_text_widget.config(state=DISABLED, height=get_height(setting3), width=80)
 ss_text_widget.pack(anchor="nw")
 
-windowed = StringVar(value=data.windowed_ss, name="windowed")
-fullscreen = StringVar(value=data.fullscreen_ss, name="fullscreen")
-single = StringVar(value=data.single_ss, name="single")
+Value.windowed = StringVar(value=data.windowed_ss, name="windowed")
+Value.fullscreen = StringVar(value=data.fullscreen_ss, name="fullscreen")
+Value.single = StringVar(value=data.single_ss, name="single")
 
 def widget_setter(var: StringVar, label: Label, /, *, title: str, prompt: str):
     val = sd.askstring(title, prompt)
@@ -467,8 +474,8 @@ setter = partial(Button, master=pic_filenames_tab, text="Set")
 Label1 = Label(pic_filenames_tab, text="Windowed picture:", font=("great vibes", 20))
 Label1.pack(anchor="nw", pady=(20, 0))
 
-windowed_displayer = displayer(text=windowed.get())
-windowed_setter = setter(command=lambda: widget_caller(windowed, windowed_displayer))
+windowed_displayer = displayer(text=Value.windowed.get())
+windowed_setter = setter(command=lambda: widget_caller(Value.windowed, windowed_displayer))
 windowed_setter.pack(anchor="nw")
 
 windowed_displayer.pack(**packer)
@@ -476,8 +483,8 @@ windowed_displayer.pack(**packer)
 Label2 = Label(pic_filenames_tab, text="Fullscreen picture", font=("great vibes", 20))
 Label2.pack(anchor="nw", pady=(20, 0))
 
-fullscreen_displayer = displayer(text=fullscreen.get())
-fullscreen_setter = setter(command=lambda: widget_caller(fullscreen, fullscreen_displayer))
+fullscreen_displayer = displayer(text=Value.fullscreen.get())
+fullscreen_setter = setter(command=lambda: widget_caller(Value.fullscreen, fullscreen_displayer))
 fullscreen_setter.pack(anchor="nw")
 
 fullscreen_displayer.pack(**packer)
@@ -485,8 +492,8 @@ fullscreen_displayer.pack(**packer)
 Label3 = Label(pic_filenames_tab, text="Singular picture", font=("great vibes", 20))
 Label3.pack(anchor="nw", pady=(20, 0))
 
-single_displayer = displayer(text=single.get())
-single_setter = setter(command=lambda: widget_caller(single, single_displayer))
+single_displayer = displayer(text=Value.single.get())
+single_setter = setter(command=lambda: widget_caller(Value.single, single_displayer))
 single_setter.pack(anchor="nw")
 
 single_displayer.pack(**packer)
@@ -585,11 +592,11 @@ if file_logdata.exists():
     with file_logdata.open("r") as file:
         contents = file.readlines()
 
-    del contents[0]
-
     new_contents = " ".join(contents)
 else:
     new_contents = "0"
+
+new_contents = new_contents[1:]
 
 logfolder_button = Button(
     tab3,
@@ -687,7 +694,7 @@ def claim_command():
 
     code = listbox.get(selection)
 
-    if mbox.askyesno(title="CONFIRMATION", message="Are you sure?") != True:
+    if not mbox.askyesno(title="CONFIRMATION", message="Are you sure?"):
         return
 
     try:
@@ -702,10 +709,7 @@ scrollbar.pack(side=RIGHT, fill=Y)
 
 listbox = Listbox(tab5, font=("great vibes", 8))
 listbox.config(width=550, height=20, yscrollcommand=scrollbar.set)
-
-for code in data.unclaimed.keys():
-    listbox.insert(END, code)
-
+listbox.insert(END, *data.unclaimed.keys())
 listbox.pack(anchor="center")
 
 scrollbar.config(command=listbox.yview, width=20)
@@ -728,16 +732,9 @@ def Save(
     var_force: BooleanVar,
     scale: Scale,
     def_scale: Scale,
-    Ef: StringVar,
-    Ew: StringVar,
-    Es: StringVar,
-) -> None:
-    """
-    Ef: Entry Fullscreen,
-    Ew: ^^^^^ Windowed,
-    Es: ^^^^^ Singular"""
+) -> Never:
 
-    close_clock = datetime.now()
+    Value.close_clock = datetime.now()
 
     # get values
     data.confirmation = var_confirmation.get()
@@ -754,9 +751,9 @@ def Save(
         data.pic_export = 0
 
 
-    data.fullscreen_ss = Ef.get()
-    data.windowed_ss = Ew.get()
-    data.single_ss = Es.get()
+    data.fullscreen_ss = Value.fullscreen.get()
+    data.windowed_ss = Value.windowed.get()
+    data.single_ss = Value.single.get()
 
     # dump settings
     with file_settings.open("w") as file:
@@ -777,29 +774,31 @@ def Save(
     except ValueError:
         dummy = 0
         contents[0] = "1"
+
     except IndexError:
         dummy = 0
         contents.append("0")
 
     dummy += 1
+    contents[0] = str(dummy) + "\n"
 
     SET_TO: str = f"""
 
 ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------
-modify.py instance at {str(datetime.now()).split(".")[0].split(" ")[0]} {open_clock}, instance number {dummy}:     
+modify.py instance at {str(datetime.now()).split(".")[0].split(" ")[0]} {Value.open_clock}, instance number {dummy}:     
 
 Saving:
 confirmation set to {data.confirmation}
 picture save set to {data.pic_export}
 ssdir set to {data.ss_dir}
 
-modify.py ran at {open_clock}
-killed at {close_clock}
-total time spent in modify.py: {close_clock - open_clock}
+modify.py ran at {Value.open_clock}
+killed at {Value.close_clock}
+total time spent in modify.py: {Value.close_clock - Value.open_clock}
 """
     contents.append(SET_TO)
-    with file_logdata.open("w") as file:
+    with file_logdata.open("w", encoding="utf-8") as file:
         file.writelines(contents)
     exit()
 
@@ -814,10 +813,7 @@ window.protocol(
         var_force,
         pic_scale,
         scl_def_automation,
-        Ef=fullscreen,
-        Ew=windowed,
-        Es=single,
     ),
 )
 
-window.mainloop()
+window.tk.mainloop()
