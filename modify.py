@@ -48,15 +48,16 @@ from init import (
     END,
 )
 
+
 class Value:
     windowed: StringVar
     fullscreen: StringVar
     single: StringVar
 
-    
     open_clock: datetime = datetime.now()
     close_clock: datetime
-    
+
+
 # main window
 window = Tk()
 window.title("Modify how arras.py functions")
@@ -99,10 +100,10 @@ def delete_logger() -> None:
     global was_deleted  # check global environment in envs
 
     if not mbox.askyesno(
-        title="Confirmation", 
+        title="Confirmation",
         message="Are you sure you want to delete the ENTIRE logging file?"
-                "The file will still exist and log data, all of its contents WILL be deleted!",
-        ):
+        "The file will still exist and log data, all of its contents WILL be deleted!",
+    ):
         return
     with file_logdata.open("w") as file:
         file.write("0")
@@ -157,8 +158,8 @@ def set_default(
 def export_logdata() -> None:
     if not mbox.askyesno(
         title="Confirmation",
-        message="Are you sure? This will create a copy of the log file!",      
-        ):
+        message="Are you sure? This will create a copy of the log file!",
+    ):
         return
 
     with file_logdata.open("r") as file:
@@ -175,6 +176,7 @@ def export_logdata() -> None:
         title="Success",
         message="Successfully created a copy of the logger file in the desired directory!",
     )
+
 
 def get_height(text: str) -> int:
     return len(text.split("\n"))
@@ -450,6 +452,7 @@ Value.windowed = StringVar(value=data.windowed_ss, name="windowed")
 Value.fullscreen = StringVar(value=data.fullscreen_ss, name="fullscreen")
 Value.single = StringVar(value=data.single_ss, name="single")
 
+
 def widget_setter(var: StringVar, label: Label, /, *, title: str, prompt: str):
     val = sd.askstring(title, prompt)
 
@@ -475,7 +478,9 @@ Label1 = Label(pic_filenames_tab, text="Windowed picture:", font=("great vibes",
 Label1.pack(anchor="nw", pady=(20, 0))
 
 windowed_displayer = displayer(text=Value.windowed.get())
-windowed_setter = setter(command=lambda: widget_caller(Value.windowed, windowed_displayer))
+windowed_setter = setter(
+    command=lambda: widget_caller(Value.windowed, windowed_displayer)
+)
 windowed_setter.pack(anchor="nw")
 
 windowed_displayer.pack(**packer)
@@ -484,7 +489,9 @@ Label2 = Label(pic_filenames_tab, text="Fullscreen picture", font=("great vibes"
 Label2.pack(anchor="nw", pady=(20, 0))
 
 fullscreen_displayer = displayer(text=Value.fullscreen.get())
-fullscreen_setter = setter(command=lambda: widget_caller(Value.fullscreen, fullscreen_displayer))
+fullscreen_setter = setter(
+    command=lambda: widget_caller(Value.fullscreen, fullscreen_displayer)
+)
 fullscreen_setter.pack(anchor="nw")
 
 fullscreen_displayer.pack(**packer)
@@ -499,6 +506,7 @@ single_setter.pack(anchor="nw")
 single_displayer.pack(**packer)
 
 # Files info tab 3
+
 
 def view_widget(context: str, title: str):
     new_window = Tk()
@@ -568,7 +576,10 @@ for item in settings.items():
 
 
 def stgs_func(data: Settings):
-    view_widget(title="Settings.json", context="\n".join(f"{k}: {v}" for k, v in data.get_dict().items()))
+    view_widget(
+        title="Settings.json",
+        context="\n".join(f"{k}: {v}" for k, v in data.get_dict().items()),
+    )
 
 
 view_stgs_button = Button(
@@ -743,13 +754,12 @@ def Save(
     data.force_automation = var_force.get()
 
     scale_int = scale.get()
-    data.def_time = int(def_scale.get())  
+    data.def_time = int(def_scale.get())
 
     if scale_int in (0, 1, 2):
         data.pic_export = scale_int
     else:
         data.pic_export = 0
-
 
     data.fullscreen_ss = Value.fullscreen.get()
     data.windowed_ss = Value.windowed.get()

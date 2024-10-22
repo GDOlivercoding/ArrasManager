@@ -76,10 +76,12 @@ try:
 except ImportError:
     gw_import = False
 
+
 class Path(pathlib.Path):
     @property
-    def st(self): 
+    def st(self):
         return super().stat()
+
 
 base_dir: Path = Path.home()
 dir_arras: Path = base_dir / "AppData" / "Local" / "Arras"
@@ -94,8 +96,10 @@ SINGLE: Final = 1
 BOTH: Final = 2
 NO_EXCEPTION: Final = "NoneType: None"
 
+
 class SupportsWrite(Protocol):
     def write(self, data: Any, /) -> Any: ...
+
 
 JSONSerializable = None | bool | str | float | int | tuple | list | dict
 ContentsType = Any | list[str] | dict[str, str]
@@ -149,12 +153,16 @@ def dump(obj: Any, fp: SupportsWrite):
 
 
 class partial[T, **P]:
-    def __init__(self: Self, func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> None:
+    def __init__(
+        self: Self, func: Callable[P, T], *args: P.args, **kwargs: P.kwargs
+    ) -> None:
         self.func: Callable[P, T] = func
         self.args: tuple[Any, ...] = args
         self.kwargs: dict[str, Any] = kwargs
+
     def __call__(self: Self, *args: P.args, **kwargs: P.kwargs) -> T:
         return self.func(*self.args, *args, **self.kwargs, **kwargs)
+
 
 @dataclass
 class Settings:
@@ -187,11 +195,7 @@ class Settings:
         """
 
         return {
-            k: (
-                v
-                if isinstance(v, JSONSerializable) 
-                else str(v)
-            )
+            k: (v if isinstance(v, JSONSerializable) else str(v))
             for k, v in vars(self).items()
         }
 
@@ -230,7 +234,9 @@ def format_score(raw_i: int, /) -> str:
 
 
 # contains defaults for Settings object
-write: dict[str, ContentsType] = {k: v for k, v in zip(settings_keys, settings_base_values, strict=True)}
+write: dict[str, ContentsType] = {
+    k: v for k, v in zip(settings_keys, settings_base_values, strict=True)
+}
 
 # we give out some info if we run the file directly
 if __name__ == "__main__":

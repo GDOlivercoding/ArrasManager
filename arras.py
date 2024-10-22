@@ -39,6 +39,7 @@ if __name__ != "__main__":
 # sample code
 # (6f0cb12f:#eo:e5forge:Arbitrator-Astronomic:0/2/6/10/10/10/10/12/0/0:7148698:20683:71:13:4:5017:62:1710762682:JDo5u44GPYop3lwZ)
 
+
 class CodeData:
     """contains non persistent data"""
 
@@ -138,12 +139,16 @@ class FileIO:
 
     def add_ss(self) -> tuple[Path | None, Path | None]:  # not a type hinting error
 
-        if data.pic_export == NONE:  # do not run this function if the user wishes to not save any death ss
+        if (
+            data.pic_export == NONE
+        ):  # do not run this function if the user wishes to not save any death ss
             return (None, None)
 
         if not data.ss_dir.exists():
             # TODO: figure out what to do if the screenshot directory doesnt exist
-            raise FileNotFoundError(f"Screenshot directory doesnt exist, directory={data.ss_dir}")
+            raise FileNotFoundError(
+                f"Screenshot directory doesnt exist, directory={data.ss_dir}"
+            )
 
         # here get the latest created files from the screenshot directory
         new = {file.st.st_birthtime: file for file in data.ss_dir.iterdir()}
@@ -323,21 +328,23 @@ runtime in minutes: {ctx.runtime // 60}min
 """
         return BIG_STRING
 
+
 class WriteUnclaimed:
     """helper to write down the code for the unclaimed codes list for convenience
     called from the FileIO class
     """
+
     def __init__(self, contents: Settings, code: str, /) -> None:
 
         if code in contents.unclaimed.keys():
             mbox.showwarning(
-                title="WARNING",
-                message="This code has already been registered!"
+                title="WARNING", message="This code has already been registered!"
             )
         contents.unclaimed[code] = datetime.isoformat(datetime.now())  # type: ignore "unclaimed" is a dictionary
 
         with file_settings.open("w") as file:
             dump(obj=contents.get_dict(), fp=file)
+
 
 # ---------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------
@@ -348,9 +355,7 @@ class WriteUnclaimed:
 if not file_settings.exists():
 
     try:
-        raise FileNotFoundError(
-            f"Path (File) '{file_settings}' doesn't exist"
-        )
+        raise FileNotFoundError(f"Path (File) '{file_settings}' doesn't exist")
     except FileNotFoundError:
         ...
     # this is to make sure that tb.format_exc() works as expected
