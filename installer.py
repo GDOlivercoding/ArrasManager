@@ -1,20 +1,21 @@
 from init import (
     partial,
-    os,
-    fdialog,
     mbox,
     Path,
     dump,
-    move,
-    load,
+
     file_logdata,
     file_settings,
     dir_arras,
     write,
     gamemode,
 )
+
+from shutil import move
 import tkinter as tk
 import ttkbootstrap as ttk
+import tkinter.filedialog as fdialog
+from json import load
 
 
 def full():
@@ -31,11 +32,11 @@ def full():
 
     dir_saves.mkdir()
 
-    to_make = ["Normal", "Olddreads", "Arms Race", "Ended Runs", "Arras Python"]
-    for item in to_make:
+    
+    for item in gamemode + ["Ended Runs"]:
         (dir_saves / item).mkdir()
 
-    for file in [f for f in Path(__file__).iterdir() if f.is_file()]:
+    for file in [f for f in Path(__file__).parent.iterdir() if f.is_file()]:
         try:
             move(file, dir_saves)
         except FileExistsError:
@@ -51,7 +52,7 @@ def full():
 
     mbox.showinfo(
         title="Success",
-        message=f"Successfully set up the software! All python files have been moved to {os.path.join(dir_saves, "Arras Python")}",
+        message=f"Successfully set up the software! All python files have been moved to {dir_saves}",
     )
 
 
@@ -87,7 +88,7 @@ def tree():
     if not get_dir:
         return
 
-    (dirpath := (Path.cwd() / "Arras.io saves")).mkdir(exist_ok=True)
+    (dirpath := (Path(__file__).parent / "Arras.io saves")).mkdir(exist_ok=True)
 
     for dir in gamemode:
         (dirpath / dir).mkdir()

@@ -1,32 +1,22 @@
 from init import (
-    # modules
-    os,
-    datetime,
-    timedelta,
-    fdialog,
-    sd,
+
     mbox,
-    ttk,
     Path,
-    # cls
+
     Settings,
     partial,
-    Never,
-    Literal,
-    # funcs
     create_dict,
-    load,
-    dump,
-    copy_clipboard,  # actually a function
-    # vars
+    dump, 
+
     file_logdata,
     file_settings,
     screenshot_dir,
     base_dir,
-    import_type,
     was_deleted,
-    # tkinter
-    # tkinter gui elements (cls)
+)
+
+from tkinter import (
+    
     Tk,
     Label,
     Checkbutton,
@@ -35,19 +25,26 @@ from init import (
     BooleanVar,
     Menu,
     Text,
-    Entry,
     Button,
     Scrollbar,
     Listbox,
-    # tkinter constants
+
     Y,
-    t_BOTH,
+    BOTH as t_BOTH,
     RIGHT,
     HORIZONTAL,
     DISABLED,
     END,
+
+    filedialog as fdialog,
+    messagebox as mbox,
+    simpledialog, 
 )
 
+from tkinter import ttk
+from datetime import datetime
+from json import load
+from typing import Never
 
 class Value:
     windowed: StringVar
@@ -165,13 +162,16 @@ def export_logdata() -> None:
     with file_logdata.open("r") as file:
         contents = file.readlines()
 
-    fp: str = fdialog.askdirectory(initialdir=base_dir / "Desktop")
+    fp = fdialog.askdirectory(initialdir=base_dir / "Desktop")
     if not fp:
         mbox.showerror(title="No input", message="No directory selected")
         return
+    
+    fp = Path(fp)
 
-    with open(os.path.join(fp, "Logdata copy.txt"), "w", encoding="utf-8") as f:
+    with (fp / "Logdata copy.txt").open("w") as f:
         f.writelines(contents)
+
     mbox.showinfo(
         title="Success",
         message="Successfully created a copy of the logger file in the desired directory!",
@@ -454,7 +454,7 @@ Value.single = StringVar(value=data.single_ss, name="single")
 
 
 def widget_setter(var: StringVar, label: Label, /, *, title: str, prompt: str):
-    val = sd.askstring(title, prompt)
+    val = simpledialog.askstring(title, prompt)
 
     # ignore non and empty strings
     if val:
@@ -686,14 +686,18 @@ def copy_command():
 
     code = listbox.get(selection)
 
-    if not import_type:
+    try:
+        import pyperclip
+
+    except ModuleNotFoundError:
         mbox.showerror(
             title="ERROR",
             message="'pyperclip' module is not installed, this functionality can only be accessed with the module",
         )
-    else:
-        copy_clipboard(f"$claim {code}")
-        mbox.showinfo(title="Success", message="Successfully copied message!")
+        return
+
+    pyperclip.copy(f"$claim {code}")
+    mbox.showinfo(title="Success", message="Successfully copied message!")
 
 
 def claim_command():

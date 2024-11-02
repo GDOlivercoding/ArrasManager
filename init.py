@@ -1,87 +1,23 @@
-from tkinter import (
-    # tkinter gui elements
-    Tk,
-    Label,
-    Checkbutton,
-    StringVar,
-    Scale,
-    BooleanVar,
-    Menu,
-    Text,
-    Entry,
-    Button,
-    Scrollbar,
-    Listbox,
-    # tkinter constants
-    Y,
-    BOTH as t_BOTH,
-    RIGHT,
-    HORIZONTAL,
-    DISABLED,
-    END,
-    # modules from the tkinter package
-    filedialog as fdialog,
-    messagebox as mbox,
-    simpledialog as sd,  # big big thigy, i wanted this for a while
-    ttk as ttk,  # unnecessary alias
-)
-
-from shutil import move
-from sys import exit
-import sys
-from datetime import datetime, date, timedelta
 from typing import (
     ClassVar,
-    Never,
     Callable,
     Protocol,
     Self,
-    overload,
     Any,
     Literal,
     Final,
-    Iterable,
 )
-from json import load, dump as _dump
-from os import startfile as os_startfile
-import os
-import pathlib
-import traceback as tb
+from json import dump as _dump
+from pathlib import Path
 from dataclasses import dataclass, field
-from time import perf_counter, sleep
+import tkinter.messagebox as mbox
 
-sys.getdefaultencoding()
+# any libraries imported as:
+# import library (as alias)
+# should be imported from here
+# as it saves little performance when we already import init
 
-# checking dependencies (not required)
-try:
-    from pyperclip import paste as get_clipboard, copy as copy_clipboard
-
-    import_type = True
-except ImportError:
-    import_type = False
-
-try:
-    import pyautogui as pag
-
-    pag_import = True
-except ImportError:
-    # mbox.showerror(title="Import Error", message="You do not have pyautogui installed\nThis app requires pyautogui to be installed\ncheck requirements.txt")
-    # pag is unused for now, so it is not a requirement
-    pag_import = False
-
-try:
-    from pygetwindow import getWindowsWithTitle
-
-    gw_import = True
-except ImportError:
-    gw_import = False
-
-
-class Path(pathlib.Path):
-    @property
-    def st(self):
-        return super().stat()
-
+# here are the paths for certain directories and files
 
 base_dir: Path = Path.home()
 dir_arras: Path = base_dir / "AppData" / "Local" / "Arras"
@@ -89,21 +25,36 @@ file_logdata: Path = dir_arras / "logdata.txt"
 file_settings: Path = dir_arras / "settings.json"
 screenshot_dir: Path = base_dir / "Pictures" / "Screenshots"
 
+# i will delete this
+# in modify.py, monitores, if the user has deleted their log file
+# if they have, this flag is set to True, and the program wont
+# log for that instance
 was_deleted: bool = False
 
+# for more readable Settings.pic_export comparisons
 NONE: Final = 0
 SINGLE: Final = 1
 BOTH: Final = 2
+
+# a code split by a colon should equal or exceed this number
+# very easy way to tell if something is a real code
+VALID_CODE_INTEGER: Final = 10
+
+# traceback.format_exc() returns this string when there is no past exceptions raised
 NO_EXCEPTION: Final = "NoneType: None"
 
-
+# SupporsWrite proto
 class SupportsWrite(Protocol):
     def write(self, data: Any, /) -> Any: ...
 
-
+# for the json library, all these types should be acceptable
+# to be json serialized
 JSONSerializable = None | bool | str | float | int | tuple | list | dict
+
+# the values of the settings.json file
 ContentsType = Any | list[str] | dict[str, str]
 
+# region tag: region name
 regions: dict[str, str] = {
     "e": "Europe",
     "w": "US West",
@@ -111,12 +62,13 @@ regions: dict[str, str] = {
     "o": "Oceania",
 }
 
+# more gamemode region type things, varies...
 gamemode: list[str] = ["Normal", "Olddreads", "Newdreads", "Grownth", "Arms race"]
-
 RegionType = Literal["Europe", "US West", "US Central", "Oceania"]
 Region = list(regions.values())
 GamemodeType = Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"]
 
+# a list of strings of names of the settings file
 settings_keys: list[str] = [
     "fullscreen_ss",
     "windowed_ss",
@@ -132,6 +84,7 @@ settings_keys: list[str] = [
     "unclaimed",
 ]
 
+# default values of the settings
 settings_base_values: list[ContentsType] = [
     "fullscreen ss",
     "windowed ss",
@@ -147,11 +100,16 @@ settings_base_values: list[ContentsType] = [
     {},
 ]
 
+# we modify the original function to pretty print
+def dump(obj: Any, fp: SupportsWrite, indent=4):
+    return _dump(obj=obj, fp=fp, indent=indent)
 
-def dump(obj: Any, fp: SupportsWrite):
-    return _dump(obj=obj, fp=fp, indent=4)
+# my own simple partial
+# saves some performance because we dont have to
+# import the entiredy of functools
+# type hinted, and not overflood with unused features
 
-
+# used by tk apps to make repetitive widgets
 class partial[T, **P]:
     def __init__(
         self: Self, func: Callable[P, T], *args: P.args, **kwargs: P.kwargs
@@ -163,6 +121,9 @@ class partial[T, **P]:
     def __call__(self: Self, *args: P.args, **kwargs: P.kwargs) -> T:
         return self.func(*self.args, *args, **self.kwargs, **kwargs)
 
+# this class represents the settings.json file
+# commonly referenced as `data` in files where they
+# want to use the settings
 
 @dataclass
 class Settings:
@@ -186,7 +147,6 @@ class Settings:
     __instances__: ClassVar[int] = 0
 
     def __post_init__(self):
-        self.ss_dir = Path(self.ss_dir)
         Settings.__instances__ += 1
 
     def get_dict(self) -> dict[str, ContentsType]:
@@ -199,6 +159,9 @@ class Settings:
             for k, v in vars(self).items()
         }
 
+# as per the docstring, i use this as a shortand initializer for the settngs file
+# this still stays, as its a nice way to guard all instance of it
+# though, obsolete
 
 def create_dict(contents: dict[str, ContentsType], /) -> Settings:
     """We unpack contents as a dictionary into the Settings object, this ensures the positional arguments dont matter"""
@@ -207,6 +170,11 @@ def create_dict(contents: dict[str, ContentsType], /) -> Settings:
 
     return Settings(**contents)  # type: ignore
 
+# receive a score integer in the savable range
+# and convert it into something we would put
+# in a directory name
+# looks aboslutely horrendous but i can guarantee
+# you that i will never edit this function
 
 def format_score(raw_i: int, /) -> str:
     """return the raw score integer formatted"""
@@ -232,6 +200,26 @@ def format_score(raw_i: int, /) -> str:
         case _:
             raise ValueError(f"Score Integer isn't in the savable range: {len(raw)}")
 
+# get a code from the user
+# always returns a code
+
+def get_code() -> str:
+    try:
+        import pyperclip
+
+        code = pyperclip.paste()
+
+        if len(code.split(":")) >= VALID_CODE_INTEGER:
+            return code
+        else:
+            raise ValueError
+
+    except (ModuleNotFoundError, ValueError):
+        while True:
+            if len((code := input("Input code: ")).split(":")) >= VALID_CODE_INTEGER:
+                return code
+            else:
+                print("Invalid code")
 
 # contains defaults for Settings object
 write: dict[str, ContentsType] = {

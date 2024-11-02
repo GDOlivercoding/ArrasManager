@@ -1,31 +1,35 @@
 from init import (
+    # names from init for slight boot speedup
+    
+    mbox,
+    dump,
+
+
     GamemodeType,
     RegionType,
-    mbox,
-    datetime,
-    date,
-    tb,
     Settings,
-    Never,
-    ClassVar,
     format_score,
-    move,
-    dump,
-    load,
     create_dict,
-    os_startfile,
-    get_clipboard,
+    get_code,
+
     NONE,
     SINGLE,
     BOTH,
     NO_EXCEPTION,
-    Path,
+
     regions,
     file_settings,
     file_logdata,
-    import_type,
     base_dir,
 )
+
+from os import startfile as os_startfile
+from datetime import datetime, date
+from shutil import move
+from typing import ClassVar, Never
+from pathlib import Path
+import traceback as tb
+from json import load
 
 # this file is not meant to be imported, so if i accidentally do, i find the issue faster
 if __name__ != "__main__":
@@ -53,15 +57,11 @@ class CodeData:
         self.extract_code(self.code.split(":"))
 
     def extract_code(self, parts: list[str]) -> None:
-        try:
-            self.server = parts[1]
-            self.gamemode_tag = parts[2]
-            self.cls = parts[3]
-            self.build = parts[4]
-            self.runtime = int(parts[6])
-
-        except Exception:
-            ExceptionHandler("Invalid code")
+        self.server = parts[1]
+        self.gamemode_tag = parts[2]
+        self.cls = parts[3]
+        self.build = parts[4]
+        self.runtime = int(parts[6])
 
         # we seperate this to change the message into something else since format_score gives a ValueError
         try:
@@ -91,9 +91,9 @@ class CodeData:
     def match_region(self) -> RegionType:
         region = None
 
-        for k, v in regions.items():
-            if self.server[1] == k:
-                region = v
+        for region_tag, region_name in regions.items():
+            if self.server[1] == region_tag:
+                region = region_name
                 break
 
         if region is None:
@@ -114,12 +114,6 @@ class CodeData:
         self.datetime = formatted
 
         return Path.cwd() / self.gamemode / Path(f"{formatted} {self.score} {self.cls}")
-
-
-# -------------------------------------------------------------------------
-# file input output operations, creates main dir, moves and os.renames ss, creates code file
-# -------------------------------------------------------------------------
-
 
 class FileIO:
     def __init__(self) -> None:
@@ -151,13 +145,13 @@ class FileIO:
             )
 
         # here get the latest created files from the screenshot directory
-        new = {file.st.st_birthtime: file for file in data.ss_dir.iterdir()}
+        new = {file.stat().st_birthtime: file for file in data.ss_dir.iterdir()}
         ss1, ss2 = [new[s] for s in sorted(new.keys(), reverse=True)[:2]]
 
         # if ss1 is smaller, then switch the variables
         # this means ss1 is always going to be bigger
         # this means that ss1 is always windowed, and ss2 is always fullscreen
-        if ss1.st.st_size < ss2.st.st_size:
+        if ss1.stat().st_size < ss2.stat().st_size:
             ss1, ss2 = ss2, ss1
 
         if data.pic_export == BOTH:
@@ -373,16 +367,7 @@ if data.confirmation:
     ):
         exit()
 
-if import_type:
-    code = get_clipboard()
-else:
-    code = input("code> ")
-
-
-if len(code.split(":")) < 10:
-    ExceptionHandler(
-        "Input text is not a code: code doesn't have more than 10 parts when split by a colon"
-    )
+code = get_code()
 
 ctx = CodeData(code)
 
@@ -403,7 +388,10 @@ try:
 
 except Exception as e:
     ExceptionHandler(
-        f"A critical internal error has occured when attempting file IO operations\nreport this to the owner immediately\nmake sure to backup the code and the screenshot\nmessage: {str(e)}\ntraceback can be found in the logger file"
+        f"A critical internal error has occured when attempting file IO operations"
+        "\nreport this to the owner immediately\n"
+        "make sure to backup the code and the screenshot"
+        "\nmessage: {str(e)}\ntraceback can be found in the logger file"
     )
     exit()  # code unreachable
 

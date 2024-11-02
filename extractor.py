@@ -1,15 +1,8 @@
 from tkinter import *  # type: ignore[wildcard]
-from tkinter import ttk, simpledialog as sd, messagebox as mbox
-from init import GamemodeType, RegionType, format_score
-from typing import Literal, Callable, Any
+from tkinter import ttk, messagebox as mbox
 
-regions: dict[str, str] = {
-    "e": "Europe",
-    "w": "US West",
-    "c": "US Central",
-    "o": "Oceania",
-}
-
+from init import GamemodeType, RegionType, format_score, regions
+from typing import Literal
 
 def match_region(server: str) -> RegionType:
     region = "Unknown"
