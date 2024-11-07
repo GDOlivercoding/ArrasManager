@@ -8,7 +8,7 @@ def match_region(server: str) -> RegionType:
     region = "Unknown"
 
     for k, v in regions.items():
-        if server[1::][:1:] == k:
+        if server[1] == k:
             region = v
 
     return region  # type: ignore

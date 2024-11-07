@@ -628,7 +628,7 @@ def Save(
     if scale_int in (0, 1, 2):
         data.pic_export = scale_int
     else:
-        data.pic_export = 0
+        data.pic_export = 0;
 
     data.fullscreen_ss = Value.fullscreen.get()
     data.windowed_ss = Value.windowed.get()
