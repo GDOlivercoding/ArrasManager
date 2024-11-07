@@ -45,6 +45,7 @@ from tkinter import ttk
 from datetime import datetime
 from json import load
 from typing import Never
+import webbrowser
 
 class Value:
     windowed: StringVar
@@ -329,9 +330,7 @@ window.config(menu=menubar)
 menubar.add_command(label="Save Settings", command=lambda: save_button_press(data))
 menubar.add_command(
     label="Open Docs",
-    command=lambda: mbox.showinfo(
-        title="Not Implemented", message="Not implemented yet"
-    ),
+    command=lambda: webbrowser.open("https://github.com/GDOlivercoding/ArrasManager", new=1, autoraise=True)
 )
 
 tab_nb = ttk.Notebook(tab1)
