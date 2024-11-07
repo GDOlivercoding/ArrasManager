@@ -1,8 +1,4 @@
 from init import (
-
-    mbox,
-    Path,
-
     Settings,
     partial,
     create_dict,
@@ -15,8 +11,7 @@ from init import (
     was_deleted,
 )
 
-from tkinter import (
-    
+from tkinter import (    
     Tk,
     Label,
     Checkbutton,
@@ -30,7 +25,7 @@ from tkinter import (
     Listbox,
 
     Y,
-    BOTH as t_BOTH,
+    BOTH,
     RIGHT,
     HORIZONTAL,
     DISABLED,
@@ -46,6 +41,7 @@ from datetime import datetime
 from json import load
 from typing import Never
 import webbrowser
+from pathlib import Path
 
 class Value:
     windowed: StringVar
@@ -76,14 +72,14 @@ MainHeader.pack(anchor="center")
 # CONSTRUCT MAIN TAB WINDOWS
 mytab = ttk.Notebook(window)
 tab1 = ttk.Frame(mytab)
-tab2 = ttk.Frame(mytab)
+#tab2 = ttk.Frame(mytab)
 tab3 = ttk.Frame(mytab)
-tab4 = ttk.Frame(mytab)
+#tab4 = ttk.Frame(mytab)
 tab5 = ttk.Frame(mytab)
 mytab.add(tab1, text="Settings")
-mytab.add(tab2, text="App Info")
+#mytab.add(tab2, text="App Info")
 mytab.add(tab3, text="View Local Txts")
-mytab.add(tab4, text="Advanced Automation")
+#mytab.add(tab4, text="Advanced Automation")
 mytab.add(tab5, text="Unclaimed Saves")
 mytab.pack(anchor="nw")
 
@@ -189,136 +185,6 @@ def save_button_press(data: Settings) -> None:
 
     mbox.showinfo(title="Success", message="Settings saved")
 
-
-# ------------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------------
-# text blocks for input, TODO: fix naming convention
-# ------------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------------
-
-setting1: str = """Ask for confirmation when creating a save
-the time when the confirmation window is supposed to be opened
-should be before anything happens
-safe option to make sure nothing bad happens if you accidentally
-run the program!"""
-setting2: str = """Set the amount of screenshots you take
-when you save
-
-default is 0 but now screenshots are required for some saves
-i recommend at least 1 screenshot for minimal proof
-
-for now you have to manually screenshot them with Win + PrtSc
-but in the future i'll make it completely automatic
-from the point when you start AFKing to save"""
-
-setting3: str = """Set the directory to where the program should reach for the screenshots to save
-by default it is C:/Users/*/Pictures/Screenshots
-some computers may have it renamed or have a different language
-This should be the folder where PrtSc screenshots get saved
-to get the screenshots folder manually:
-- Take screenshot with Win + PrtSc
-- Open file explorer
-- Recently opened
-- Right click the last file(the screenshot) and view properties
-There is a specified path
-come back and input the path here"""
-
-modify_text: str = """modify.py is used to change and do everything with how the program behaves.
-it can be launched at any time and provides settings and useful information.
-
-you can currently see 3 tabs of which you saw 2 already:
-
-- Settings tab
-  Add confirmation
-  Change the amount of death screenshots to save
-  And setup the screenshot directory
-
-- App Info
-  The current tab
-  Contains information about the app
-  And all of its files
-
-- View local txts
-  View data files
-  Modify them
-  Reset them
-  Export them
-"""
-arras_text: str = """arras.py is the main application
-when ran, it will collect the code
-extract it
-and create a directory based in and on the code
-run when you have the appropriate amount of screenshots taken
-and when you have your code saved in your clipboard (optional)
-"""
-inst_text: str = """
-installer.py is meant to be ran when you download the 3 files of my software
-when ran you're present with 3 options:
-
- - Yes
-   this will initialise the main installation process
-   it's what you've done to get here
-   creates data files and
-   creates the whole directory tree
-
- - No
-   This will rapair your data files
-   if they're broken or if you damaged them
-   Run if you've gotten an error telling you to do so
-
- - Cancel
-   Do not perform any activity
-"""
-app_info: str = """Hello and welcome to the arras save manager!
-This app allows you to organize and store your saves easily.
-
-HOW TO USE:
-When saving, this app (arras.py) is meant to be run and create a directory with screenshots and the code.
-First the way the app obtains the code to store it and extract information from it create the dirname and
-puts it in the correct directory:
-
-by default when ran, the app manually asks you to enter the code, but if you install a extra package it can take the code
-from your clipboard improving convenince.
-if you want such action to happen open up a command prompt and run:
-
-pip install pyperclip (<- not a spelling error)
-                      or
-pip install clipboard
-
-both will work (For advanced people, pyperclip overrides clipboard when both installed), this is 100% optional and is used
-cleanly for convenience
-
-disabling taking the code from your clipboard when one of those libraries are installed will be added in the near future
-
-when used it can also easily store screenshots of your score
-in the "Settings" tab of the app you have opened right now you can set how many screenshots to save
-
-But yes unfortunately those screenshots have to be manually taken by you,
-set the amount you want and the program will rename them
-and move them to the appropriate directory (To take the screenshot, press win + PrtSc)
-
-if your computer isn't set in english or you have modified your screenshots directory, you may have to set that yourself
-in the settings 
-
-Aight heres the actual "How to use":
-- Save a score in game
-- Take the amount of screenshots you set using Win + PrtSc
-- Copy the code
-- Enter the code in the console (if you havent downloaded any external library mentioned above
-otherwise the code gets taken from your clipboard)
-
-the program will automatically store the code and screenshots in the correct gamemode folder 
-also will create a name for the folder with a "date, score, tank class" format
-
-YOUR DATA IS NOT BEING SENT ANYWHERE
-THIS PROGRAM IS 100% LOCAL AND OFFLINE
-YOUR DATA IS BEING STORED IN A LOCAL FILE CALLED LOGDATA.TXT, WHICH IS USED ONLY WHEN AN ERROR OCCURS, 
-OR TO RECALL HISTORY LOCALLY!!
-THIS PROGRAM WILL NOT STEAL ANY OF YOUR INPUTS
-LOGGING IN THE LOGDATA.TXT FILE CAN BE DISABLED
-
-If you do not understand anything said here, DM celestial_raccoon on discord and i'll add it to this massive wall of text"""
-
 # -----------------------------------------------------------------------------------------
 # main functionality goes under here
 # tab1: Settings
@@ -371,10 +237,10 @@ cb_confirmation.pack(anchor="nw")
 if data.confirmation:
     cb_confirmation.invoke()
 
-confirm_txt_widget = Text(confirm_tab)
+"""confirm_txt_widget = Text(confirm_tab)
 confirm_txt_widget.insert(END, setting1)
 confirm_txt_widget.config(state="disabled", height=get_height(setting1), width=75)
-confirm_txt_widget.pack(anchor="nw")
+confirm_txt_widget.pack(anchor="nw")"""
 
 Label(open_dirname_tab, text="Setting 5:", font=("great vibes", 30)).pack(anchor="nw")
 
@@ -420,10 +286,10 @@ pic_scale.set(data.pic_export)
 pic_scale.pack(anchor="nw")
 
 
-pic_txt_widget = Text(pic_export_tab)
+"""pic_txt_widget = Text(pic_export_tab)
 pic_txt_widget.insert(END, setting2)
 pic_txt_widget.config(state="disabled", height=get_height(setting2), width=65)
-pic_txt_widget.pack(anchor="nw")
+pic_txt_widget.pack(anchor="nw")"""
 
 header3 = Label(pic_dir_tab, text="Setting 3:", font=("great vibes", 30))
 header3.pack(anchor="nw")
@@ -442,10 +308,10 @@ cur_path.set(f"Current Path: {data.ss_dir}")
 ss_text2 = Label(pic_dir_tab, text="", textvariable=cur_path, font=("great vibes", 10))
 ss_text2.pack(anchor="nw")
 
-ss_text_widget = Text(pic_dir_tab)
+"""ss_text_widget = Text(pic_dir_tab)
 ss_text_widget.insert(END, setting3)
 ss_text_widget.config(state=DISABLED, height=get_height(setting3), width=80)
-ss_text_widget.pack(anchor="nw")
+ss_text_widget.pack(anchor="nw")"""
 
 Value.windowed = StringVar(value=data.windowed_ss, name="windowed")
 Value.fullscreen = StringVar(value=data.fullscreen_ss, name="fullscreen")
@@ -522,11 +388,11 @@ def view_widget(context: str, title: str):
         main_text.insert(END, line + "\n")
 
     main_text.config(state=DISABLED)
-    main_text.pack(anchor="nw", expand=True, fill=t_BOTH)
+    main_text.pack(anchor="nw", expand=True, fill=BOTH)
 
     scroll.config(command=main_text.yview)
 
-
+"""
 descriptor_label = partial(Label, master=tab2, font=("great vibes", 30))
 
 descriptor_label(text="Main App Info").pack(anchor="nw", pady=(20, 0))
@@ -559,7 +425,7 @@ inst_descriptor = Button(
     text="installer.py info",
     command=lambda inst_text=inst_text: view_widget(inst_text, "installer.py Info"),
 )
-inst_descriptor.pack(anchor="nw", pady=(20, 0))
+inst_descriptor.pack(anchor="nw", pady=(20, 0))"""
 
 # tab 4: view local txts
 tab4_header = Label(tab3, text="View Local Txt Files", font=("great vibes", 40))
@@ -628,7 +494,7 @@ export_log.pack(anchor="nw", pady=(20, 0))
 # <----------------------------------->
 # tab4: automation
 
-Label(tab4, text="Extra Automation Settings", font=("great vibes", 25)).pack(
+"""Label(tab4, text="Extra Automation Settings", font=("great vibes", 25)).pack(
     anchor="center", pady=(10, 0)
 )
 
@@ -672,7 +538,7 @@ scl_def_automation = Scale(
     tab4, from_=300, to=0, orient=HORIZONTAL, length=220, resolution=10
 )
 scl_def_automation.set(data.def_time)
-scl_def_automation.pack(anchor="nw", padx=(50, 0))
+scl_def_automation.pack(anchor="nw", padx=(50, 0))"""
 
 
 # tab 5: Unclaimed
@@ -742,10 +608,10 @@ def Save(
     data: Settings,
     var_confirmation: BooleanVar,
     var_dirname: BooleanVar,
-    var_automation: BooleanVar,
-    var_force: BooleanVar,
+    #var_automation: BooleanVar,
+    #var_force: BooleanVar,
     scale: Scale,
-    def_scale: Scale,
+    #def_scale: Scale,
 ) -> Never:
 
     Value.close_clock = datetime.now()
@@ -753,11 +619,11 @@ def Save(
     # get values
     data.confirmation = var_confirmation.get()
     data.open_dirname = var_dirname.get()
-    data.automation = var_automation.get()
-    data.force_automation = var_force.get()
+    #data.automation = var_automation.get()
+    #data.force_automation = var_force.get()
 
     scale_int = scale.get()
-    data.def_time = int(def_scale.get())
+    #data.def_time = int(def_scale.get())
 
     if scale_int in (0, 1, 2):
         data.pic_export = scale_int
@@ -817,15 +683,15 @@ total time spent in modify.py: {Value.close_clock - Value.open_clock}
 
 
 window.protocol(
-    "WM_DELETE_WINDOW",  # WINDOW MANAGER DELETE WINDOW
+    "WM_DELETE_WINDOW",#  # WINDOW MANAGER DELETE WINDOW
     lambda data=data: Save(
         data,
         var_confirmation,
         var_dirname,
-        var_automation,
-        var_force,
+        #var_automation,
+        #var_force,
         pic_scale,
-        scl_def_automation,
+        #scl_def_automation,
     ),
 )
 
