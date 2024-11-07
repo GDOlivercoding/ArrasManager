@@ -133,9 +133,7 @@ class FileIO:
 
     def add_ss(self) -> tuple[Path | None, Path | None]:  # not a type hinting error
 
-        if (
-            data.pic_export == NONE
-        ):  # do not run this function if the user wishes to not save any death ss
+        if data.pic_export == NONE:  # do not run this function if the user wishes to not save any death ss
             return (None, None)
 
         if not data.ss_dir.exists():
@@ -155,22 +153,11 @@ class FileIO:
             ss1, ss2 = ss2, ss1
 
         if data.pic_export == BOTH:
-            # we rename the files first since pathlib.Path
-            # will return the new renamed file path
-            # this is not good since the moving operation is the one more likely
-            # to fail
-            # resulting in more damage
-            # if the moving operation fails
-
-            ss1 = ss1.rename(data.windowed_ss + ss1.suffix)
-            ss2 = ss2.rename(data.fullscreen_ss + ss2.suffix)
-            for f in (ss1, ss2):
-                move(f, ctx.dirname)
+            ss1.rename(ctx.dirname / ss1.with_stem(data.windowed_ss).name)
+            ss2.rename(ctx.dirname / ss2.with_stem(data.fullscreen_ss).name)
 
         elif data.pic_export == SINGLE:
-            # same as above
-            ss1 = ss1.rename(data.single_ss + ss1.suffix)
-            move(ss1, ctx.dirname)
+            ss1.rename(ctx.dirname / ss1.with_stem(data.single_ss).name)
 
         else:
             ExceptionHandler(
