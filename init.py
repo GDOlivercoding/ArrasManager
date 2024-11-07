@@ -148,6 +148,9 @@ class Settings:
 
     def __post_init__(self):
         Settings.__instances__ += 1
+        # do not remove this, when creating an object
+        # the original value is string
+        self.ss_dir = Path(self.ss_dir)
 
     def get_dict(self) -> dict[str, ContentsType]:
         """Return the Settings object converted to a dictionary and ready to go!

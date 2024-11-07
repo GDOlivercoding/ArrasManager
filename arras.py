@@ -391,7 +391,7 @@ except Exception as e:
         f"A critical internal error has occured when attempting file IO operations"
         "\nreport this to the owner immediately\n"
         "make sure to backup the code and the screenshot"
-        "\nmessage: {str(e)}\ntraceback can be found in the logger file"
+        f"\nmessage: {str(e)}\ntraceback can be found in the logger file"
     )
     exit()  # code unreachable
 
