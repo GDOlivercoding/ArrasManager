@@ -43,6 +43,8 @@ from typing import Never
 import webbrowser
 from pathlib import Path
 
+ENCODING = "utf-8"
+
 class Value:
     windowed: StringVar
     fullscreen: StringVar
@@ -78,7 +80,7 @@ tab3 = ttk.Frame(mytab)
 tab5 = ttk.Frame(mytab)
 mytab.add(tab1, text="Settings")
 #mytab.add(tab2, text="App Info")
-mytab.add(tab3, text="View Local Txts")
+mytab.add(tab3, text="View Local Files")
 #mytab.add(tab4, text="Advanced Automation")
 mytab.add(tab5, text="Unclaimed Saves")
 mytab.pack(anchor="nw")
@@ -237,11 +239,6 @@ cb_confirmation.pack(anchor="nw")
 if data.confirmation:
     cb_confirmation.invoke()
 
-"""confirm_txt_widget = Text(confirm_tab)
-confirm_txt_widget.insert(END, setting1)
-confirm_txt_widget.config(state="disabled", height=get_height(setting1), width=75)
-confirm_txt_widget.pack(anchor="nw")"""
-
 Label(open_dirname_tab, text="Setting 5:", font=("great vibes", 30)).pack(anchor="nw")
 
 var_dirname = BooleanVar()
@@ -285,12 +282,6 @@ pic_scale = Scale(
 pic_scale.set(data.pic_export)
 pic_scale.pack(anchor="nw")
 
-
-"""pic_txt_widget = Text(pic_export_tab)
-pic_txt_widget.insert(END, setting2)
-pic_txt_widget.config(state="disabled", height=get_height(setting2), width=65)
-pic_txt_widget.pack(anchor="nw")"""
-
 header3 = Label(pic_dir_tab, text="Setting 3:", font=("great vibes", 30))
 header3.pack(anchor="nw")
 
@@ -307,11 +298,6 @@ cur_path.set(f"Current Path: {data.ss_dir}")
 
 ss_text2 = Label(pic_dir_tab, text="", textvariable=cur_path, font=("great vibes", 10))
 ss_text2.pack(anchor="nw")
-
-"""ss_text_widget = Text(pic_dir_tab)
-ss_text_widget.insert(END, setting3)
-ss_text_widget.config(state=DISABLED, height=get_height(setting3), width=80)
-ss_text_widget.pack(anchor="nw")"""
 
 Value.windowed = StringVar(value=data.windowed_ss, name="windowed")
 Value.fullscreen = StringVar(value=data.fullscreen_ss, name="fullscreen")
@@ -392,43 +378,8 @@ def view_widget(context: str, title: str):
 
     scroll.config(command=main_text.yview)
 
-"""
-descriptor_label = partial(Label, master=tab2, font=("great vibes", 30))
-
-descriptor_label(text="Main App Info").pack(anchor="nw", pady=(20, 0))
-
-app_descriptor = Button(
-    tab2, text="View app info", command=lambda: view_widget(app_info, "App Info")
-)
-app_descriptor.pack(anchor="nw", pady=(20, 0))
-
-descriptor_label(text="modify guidance").pack(anchor="nw", pady=(20, 0))
-
-modify_descriptor = Button(
-    tab2,
-    text="modify.py info",
-    command=lambda: view_widget(modify_text, "Modify.py Info"),
-)
-modify_descriptor.pack(anchor="nw", pady=(20, 0))
-
-descriptor_label(text="arras usage").pack(anchor="nw", pady=(20, 0))
-
-arras_descriptor = Button(
-    tab2, text="arras.py info", command=lambda: view_widget(arras_text, "arras.py Info")
-)
-arras_descriptor.pack(anchor="nw", pady=(20, 0))
-
-descriptor_label(text="how to use installer").pack(anchor="nw", pady=(20, 0))
-
-inst_descriptor = Button(
-    tab2,
-    text="installer.py info",
-    command=lambda inst_text=inst_text: view_widget(inst_text, "installer.py Info"),
-)
-inst_descriptor.pack(anchor="nw", pady=(20, 0))"""
-
 # tab 4: view local txts
-tab4_header = Label(tab3, text="View Local Txt Files", font=("great vibes", 40))
+tab4_header = Label(tab3, text="View Local Files", font=("great vibes", 40))
 tab4_header.pack(anchor="center")
 
 settings_label = Label(tab3, text="Settings file", font=("great vibes", 30))
@@ -465,7 +416,7 @@ logger_label = Label(tab3, text="Logger file", font=("great vibes", 30))
 logger_label.pack(anchor="nw", pady=(20, 0))
 
 if file_logdata.exists():
-    with file_logdata.open("r") as file:
+    with file_logdata.open("r", encoding=ENCODING) as file:
         contents = file.readlines()
 
     new_contents = " ".join(contents)
@@ -491,55 +442,15 @@ del_logger_button.pack(anchor="nw", pady=(20, 0))
 export_log = Button(tab3, text="Export logdata", command=export_logdata)
 export_log.pack(anchor="nw", pady=(20, 0))
 
-# <----------------------------------->
-# tab4: automation
+saves_label = Label(tab3, text="Saves Location", font=("great vibes", 30))
+saves_label.pack(anchor="nw", pady=(20, 0))
 
-"""Label(tab4, text="Extra Automation Settings", font=("great vibes", 25)).pack(
-    anchor="center", pady=(10, 0)
-)
+def open_saves():
+    import os
+    os.startfile(Path(__file__).parent)
 
-var_automation = BooleanVar(value=data.automation)
-
-Checkbutton(
-    master=tab4,
-    text="Enable Advanced Automation",
-    font=("great vibes", 20),
-    variable=var_automation,
-    onvalue=True,
-    offvalue=False,
-    background="light green",
-    foreground="gray",
-    activebackground="green",
-    activeforeground="dark gray",
-).pack(anchor="nw")
-
-var_force = BooleanVar(value=data.force_automation)
-
-Checkbutton(
-    master=tab4,
-    text="Force Automation Popup",
-    font=("great vibes", 20),
-    variable=var_force,
-    onvalue=True,
-    offvalue=False,
-    background="light green",
-    foreground="gray",
-    activebackground="green",
-    activeforeground="dark gray",
-).pack(anchor="nw", pady=(10, 0))
-
-Label(
-    tab4,
-    text="Default amount of seconds to wait\nbefore attempting to save\nwith current resources:",
-    font=("great vibes", 15),
-).pack(anchor="nw", pady=(10, 0))
-
-scl_def_automation = Scale(
-    tab4, from_=300, to=0, orient=HORIZONTAL, length=220, resolution=10
-)
-scl_def_automation.set(data.def_time)
-scl_def_automation.pack(anchor="nw", padx=(50, 0))"""
-
+open_saves_button = Button(tab3, text="Open", command=open_saves)
+open_saves_button.pack(anchor="w", padx=(10, 0), pady=(5, 0))
 
 # tab 5: Unclaimed
 def copy_command():
@@ -608,10 +519,7 @@ def Save(
     data: Settings,
     var_confirmation: BooleanVar,
     var_dirname: BooleanVar,
-    #var_automation: BooleanVar,
-    #var_force: BooleanVar,
-    scale: Scale,
-    #def_scale: Scale,
+    scale: Scale,   
 ) -> Never:
 
     Value.close_clock = datetime.now()
@@ -619,11 +527,8 @@ def Save(
     # get values
     data.confirmation = var_confirmation.get()
     data.open_dirname = var_dirname.get()
-    #data.automation = var_automation.get()
-    #data.force_automation = var_force.get()
 
     scale_int = scale.get()
-    #data.def_time = int(def_scale.get())
 
     if scale_int in (0, 1, 2):
         data.pic_export = scale_int
@@ -645,7 +550,7 @@ def Save(
     # logdata block
     # ------------------------------------------------------------
 
-    with file_logdata.open("r") as file:
+    with file_logdata.open("r", encoding=ENCODING) as file:
         contents = file.readlines()
 
     try:
@@ -688,10 +593,7 @@ window.protocol(
         data,
         var_confirmation,
         var_dirname,
-        #var_automation,
-        #var_force,
         pic_scale,
-        #scl_def_automation,
     ),
 )
 

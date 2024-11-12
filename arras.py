@@ -28,6 +28,8 @@ from pathlib import Path
 import traceback as tb
 from json import load
 
+ENCODING = "utf-8"
+
 # this file is not meant to be imported, so if i accidentally do, i find the issue faster
 if __name__ != "__main__":
     mbox.showerror(
@@ -110,7 +112,9 @@ class CodeData:
         formatted = f"{month}.{day}."
         self.datetime = formatted
 
-        return Path.cwd() / self.gamemode / Path(f"{formatted} {self.score} {self.cls}")
+        path = Path(__file__).parent / self.gamemode / Path(f"{formatted} {self.score} {self.cls}")
+
+        return path
 
 class FileIO:
     def __init__(self) -> None:
@@ -121,7 +125,7 @@ class FileIO:
 
         ctx.dirname.mkdir(exist_ok=True)
 
-        with (ctx.dirname / "code.txt").open("w") as file:
+        with (ctx.dirname / "code.txt").open("w", encoding=ENCODING) as file:
             file.write(ctx.code)
 
         self.filenames = self.add_ss()
@@ -186,7 +190,7 @@ class ExceptionHandler:
 
         if not file_logdata.exists():
             with (base_dir / "Desktop" / f"{date.today()} ArrasErr.log").open(
-                "w"
+                "w", encoding=ENCODING
             ) as file:
                 file.writelines(self.message.strip() + "\n")
 
@@ -197,7 +201,7 @@ class ExceptionHandler:
             if self.kill:
                 exit()
 
-        with file_logdata.open("r") as file:
+        with file_logdata.open("r", encoding=ENCODING) as file:
             contents = file.readlines()
 
         try:
@@ -217,7 +221,7 @@ class ExceptionHandler:
 
         contents.append(self.info_string())
 
-        with file_logdata.open("w") as newfile:
+        with file_logdata.open("w", encoding=ENCODING) as newfile:
             newfile.writelines(contents)
         exit()
 
@@ -256,11 +260,11 @@ class WriteDown:
         self.write_logdata(self.contents)
 
     def read_logdata(self) -> list[str]:
-        with file_logdata.open("r") as file:
+        with file_logdata.open("r", encoding=ENCODING) as file:
             return file.readlines()
 
     def write_logdata(self, to_write: list[str]) -> Never:
-        with open(file_logdata, "w", encoding="utf-8") as file:
+        with file_logdata.open("w", encoding=ENCODING) as file:
             file.writelines(to_write)
         exit()
 
@@ -320,7 +324,7 @@ class WriteUnclaimed:
             )
         contents.unclaimed[code] = datetime.isoformat(datetime.now())  # type: ignore "unclaimed" is a dictionary
 
-        with file_settings.open("w") as file:
+        with file_settings.open("w", encoding=ENCODING) as file:
             dump(obj=contents.get_dict(), fp=file)
 
 
@@ -342,7 +346,7 @@ if not file_settings.exists():
         "Cannot find settings file\nplease run the installer and select the 'no' option to fix this problem\nnote that all settings will be set to default\nand the entire logging file will be reset if you do so"
     )
 
-with file_settings.open("r") as file:
+with file_settings.open("r", encoding=ENCODING) as file:
     data = create_dict(load(file))
 
 if data.confirmation:
