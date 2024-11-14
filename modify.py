@@ -370,7 +370,7 @@ def view_widget(context: str, title: str):
 
     main_text = Text(new_window, yscrollcommand=scroll.set)
 
-    for line in context.split("\n"):
+    for line in context.splitlines():
         main_text.insert(END, line + "\n")
 
     main_text.config(state=DISABLED)
