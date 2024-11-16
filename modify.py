@@ -9,9 +9,12 @@ from init import (
     screenshot_dir,
     base_dir,
     was_deleted,
+    gamemode
 )
 
 from tkinter import (    
+    LEFT,
+    Frame,
     Tk,
     Label,
     Checkbutton,
@@ -30,6 +33,7 @@ from tkinter import (
     HORIZONTAL,
     DISABLED,
     END,
+    Toplevel,
 
     filedialog as fdialog,
     messagebox as mbox,
@@ -42,6 +46,14 @@ from json import load
 from typing import Never
 import webbrowser
 from pathlib import Path
+from os import startfile
+
+from pyautogui import size
+
+width, height = size()
+x, y = width // 2, height // 2
+
+geometry = f"{x}x{y}"
 
 ENCODING = "utf-8"
 
@@ -57,7 +69,7 @@ class Value:
 # main window
 window = Tk()
 window.title("Modify how arras.py functions")
-window.geometry("700x550")
+window.geometry(geometry)
 window.resizable(False, False)
 
 # read settings
@@ -187,6 +199,52 @@ def save_button_press(data: Settings) -> None:
 
     mbox.showinfo(title="Success", message="Settings saved")
 
+def manage_saves_widget():
+    TOP = Toplevel(window)
+    TOP.geometry(geometry)
+    TOP.title("Manage saves - modify.py")
+
+    def _view(): 
+        tk = Tk()
+        Label(tk, text="TODO: implement this").pack()
+
+    wrapper = Frame(TOP)
+    wrapper.pack(side="top", anchor="w")
+
+    wrapper_button = partial(Button, master=wrapper)
+    wrapper_packer = {"side": "left", "pady": 20, "padx": (20, 0)}
+
+    viewer = wrapper_button(text="View", command=_view)
+    viewer.pack(**wrapper_packer)
+
+    retore = wrapper_button(text="Restore")
+    retore.pack(**wrapper_packer)
+
+    deleter = wrapper_button(text="Discard Save")
+    deleter.pack(**wrapper_packer)
+
+    scroll = Scrollbar(TOP)
+    scroll.pack(side="right", fill=Y)
+
+    MAIN = Listbox(TOP, yscrollcommand=scroll.set)
+    MAIN.pack(expand=True, fill=BOTH)
+    
+    scroll.config(command=MAIN.yview)
+
+    # now the sauce
+
+    join = Path(__file__).parent
+
+    for dir in gamemode:
+        dir = join / dir
+
+        table = {d.name: d for d in dir.iterdir() if d.is_dir()}
+
+        MAIN.insert(END, *table.keys())
+
+    TOP.mainloop()
+
+
 # -----------------------------------------------------------------------------------------
 # main functionality goes under here
 # tab1: Settings
@@ -196,9 +254,15 @@ menubar = Menu(window)
 window.config(menu=menubar)
 
 menubar.add_command(label="Save Settings", command=lambda: save_button_press(data))
+
 menubar.add_command(
     label="Open Docs",
-    command=lambda: webbrowser.open("https://github.com/GDOlivercoding/ArrasManager", new=1, autoraise=True)
+    command=lambda: webbrowser.open("https://github.com/GDOlivercoding/ArrasManager", new=2)
+)
+
+menubar.add_command(
+    label="Manage Saves",
+    command=manage_saves_widget
 )
 
 tab_nb = ttk.Notebook(tab1)
@@ -446,8 +510,7 @@ saves_label = Label(tab3, text="Saves Location", font=("great vibes", 30))
 saves_label.pack(anchor="nw", pady=(20, 0))
 
 def open_saves():
-    import os
-    os.startfile(Path(__file__).parent)
+    startfile(Path(__file__).parent)
 
 open_saves_button = Button(tab3, text="Open", command=open_saves)
 open_saves_button.pack(anchor="w", padx=(10, 0), pady=(5, 0))

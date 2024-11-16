@@ -52,7 +52,9 @@ class SupportsWrite(Protocol):
 JSONSerializable = None | bool | str | float | int | tuple | list | dict
 
 # the values of the settings.json file
-ContentsType = Any | list[str] | dict[str, str]
+# this is just to visually uhhhh
+# know? that this should cary the values of the file yup
+ContentsType = object
 
 # region tag: region name
 regions: dict[str, str] = {
