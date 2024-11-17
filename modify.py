@@ -210,6 +210,11 @@ def manage_saves_widget():
         
         name = listbox.get(indice[0])
 
+        if name not in table:
+            mbox.showerror("Dummy!!!!", "This is not a save!"
+                           "\nThis is a seperator to make it more readable!")
+            return
+
         tk = Tk()
         tk.title(title := f"Viewing {name}")
         tk.geometry(geometry)
@@ -238,33 +243,23 @@ def manage_saves_widget():
             return
             
         if data.single_ss in [Path(s).stem for s in _files.keys()]:
-            ss1, ss2 = list(path.glob(f"{data.single_ss}.*"))[0], None
+            ss1, ss2 = [*path.glob(f"{data.single_ss}.*"), None]
         else:
             # this is kinda hard
             # im gonna have to rewrite this eventually
             # we will get the suffix, and then search based on the stem and suffix combined
 
-            suf = None
+            for suffix in ["png", "jpg", "jpeg"]:
 
-            for suffix in [d.suffix for d in files]:
-                if suffix != ".txt":
-                    suf = suffix
+                images = list(path.glob(f"*.{suffix}"))
+
+                if (amt := len(images)) == 2:
+                    ss1, ss2 = images
                     break
 
-            if not suf:
-                mbox.showerror("Images not found", f"Cannot find save screenshots of {str(path)}")
-                tk.destroy()
-                return
-            
-            if data.fullscreen_ss + suf in _files:
-                ss1 = _files[data.fullscreen_ss + suf]
-            else:
-                ss1 = None
-
-            if data.windowed_ss + suf in _files:
-                ss2 = _files[data.windowed_ss + suf]
-            else:
-                ss2 = None
+                elif amt == 1:
+                    ss1, ss2 = [*images, None]
+                    break
 
         try:
             code = code_file.read_text()
@@ -285,7 +280,6 @@ def manage_saves_widget():
         #Label(tk, text="Images", font="TkDefaultFont 15").pack(anchor="s")
 
         def missing():
-            print("Called")
             mbox.showinfo("Missing", "This screenshot is missing")
 
         ss_frame = Frame(tk)
@@ -294,8 +288,9 @@ def manage_saves_widget():
         ss1_button = Button(ss_frame, text="Screenshot 1", command=(lambda: os.startfile(ss1)) if ss1 is not None else missing)
         ss2_button = Button(ss_frame, text="Screenshot 2", command=(lambda: os.startfile(ss2)) if ss2 is not None else missing)
         ss1_button.pack(side="left", pady=20)
-        ss2_button.pack(side="left", padx=(30, 0), pady=20)
-        open_button = Button(ss_frame, text="Open Save Location", command=lambda: os.startfile(path))
+        ss2_button.pack(side="left", padx=30, pady=20)
+        open_button = Button(ss_frame, text="Open Location", command=lambda: os.startfile(path))
+        open_button.pack(side="left", pady=20)
 
     wrapper = Frame(TOP)
     wrapper.pack(side="top", anchor="w")
@@ -329,11 +324,12 @@ def manage_saves_widget():
 
     table: dict[str, Path] = {}
 
-    for dir in gamemode:
-        dir = join / dir
+    for name in gamemode:
+        dir = join / name
 
         table |= {d.name: d for d in dir.iterdir() if d.is_dir()}
 
+        MAIN.insert(END, "-" * 25, name, "-" * 25)
         MAIN.insert(END, *table.keys())
 
     TOP.mainloop()
