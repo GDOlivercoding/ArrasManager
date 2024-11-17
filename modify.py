@@ -1,3 +1,4 @@
+import os
 from init import (
     Settings,
     partial,
@@ -43,7 +44,7 @@ from tkinter import (
 from tkinter import ttk
 from datetime import datetime
 from json import load
-from typing import Never
+from typing import Never, TypedDict
 import webbrowser
 from pathlib import Path
 from os import startfile
@@ -170,7 +171,7 @@ def export_logdata() -> None:
     ):
         return
 
-    with file_logdata.open("r") as file:
+    with file_logdata.open("r", encoding=ENCODING) as file:
         contents = file.readlines()
 
     fp = fdialog.askdirectory(initialdir=base_dir / "Desktop")
@@ -188,11 +189,6 @@ def export_logdata() -> None:
         message="Successfully created a copy of the logger file in the desired directory!",
     )
 
-
-def get_height(text: str) -> int:
-    return len(text.split("\n"))
-
-
 def save_button_press(data: Settings) -> None:
     with file_settings.open("w") as file:
         dump(fp=file, obj=data.get_dict())
@@ -204,27 +200,123 @@ def manage_saves_widget():
     TOP.geometry(geometry)
     TOP.title("Manage saves - modify.py")
 
-    def _view(): 
+    def _view(listbox: Listbox): 
+
+        indice = listbox.curselection()
+
+        if not indice:
+            mbox.showinfo("Nothing selected", "No save selected")
+            return
+        
+        name = listbox.get(indice[0])
+
         tk = Tk()
-        Label(tk, text="TODO: implement this").pack()
+        tk.title(title := f"Viewing {name}")
+        tk.geometry(geometry)
+    
+        path = table[name]
+
+        header = Label(tk, text=title, font="TkDefaultFont 30")
+        header.pack(anchor="n")
+
+        text = Text(tk, wrap="none")
+        text.pack(anchor="s", fill=BOTH, expand=True)
+
+        to_insert = []
+
+        files = list(path.iterdir())
+        _files = {s.name: s for s in files}
+
+        if "code.txt" in _files.keys():
+            code_file = _files["code.txt"]
+        else:
+            mbox.showerror("Code file not found", 
+                           f"Cant find code of {str(path)}"
+                           ", create a txt file with the code"
+                           "and try again")
+            tk.destroy()
+            return
+            
+        if data.single_ss in [Path(s).stem for s in _files.keys()]:
+            ss1, ss2 = list(path.glob(f"{data.single_ss}.*"))[0], None
+        else:
+            # this is kinda hard
+            # im gonna have to rewrite this eventually
+            # we will get the suffix, and then search based on the stem and suffix combined
+
+            suf = None
+
+            for suffix in [d.suffix for d in files]:
+                if suffix != ".txt":
+                    suf = suffix
+                    break
+
+            if not suf:
+                mbox.showerror("Images not found", f"Cannot find save screenshots of {str(path)}")
+                tk.destroy()
+                return
+            
+            if data.fullscreen_ss + suf in _files:
+                ss1 = _files[data.fullscreen_ss + suf]
+            else:
+                ss1 = None
+
+            if data.windowed_ss + suf in _files:
+                ss2 = _files[data.windowed_ss + suf]
+            else:
+                ss2 = None
+
+        try:
+            code = code_file.read_text()
+        except Exception:
+            mbox.showerror("Could not get code", 
+                           f"Cant get code of {str(code_file)}"
+                           ", create a txt file with the code"
+                           "and try again")
+            tk.destroy()
+            return
+
+        to_insert.append(f"code: {code}")
+        to_insert.append(f"path: {str(path)}")
+
+        text.insert(END, "\n".join(to_insert))
+        text.config(state="disabled")
+
+        #Label(tk, text="Images", font="TkDefaultFont 15").pack(anchor="s")
+
+        def missing():
+            print("Called")
+            mbox.showinfo("Missing", "This screenshot is missing")
+
+        ss_frame = Frame(tk)
+        ss_frame.pack(side="bottom")
+
+        ss1_button = Button(ss_frame, text="Screenshot 1", command=(lambda: os.startfile(ss1)) if ss1 is not None else missing)
+        ss2_button = Button(ss_frame, text="Screenshot 2", command=(lambda: os.startfile(ss2)) if ss2 is not None else missing)
+        ss1_button.pack(side="left", pady=20)
+        ss2_button.pack(side="left", padx=(30, 0), pady=20)
+        open_button = Button(ss_frame, text="Open Save Location", command=lambda: os.startfile(path))
 
     wrapper = Frame(TOP)
     wrapper.pack(side="top", anchor="w")
 
     wrapper_button = partial(Button, master=wrapper)
-    wrapper_packer = {"side": "left", "pady": 20, "padx": (20, 0)}
+    packer = {"side": "left", "pady": 20, "padx": (20, 0)}
 
-    viewer = wrapper_button(text="View", command=_view)
-    viewer.pack(**wrapper_packer)
+    viewer = wrapper_button(text="View", command=lambda: _view(MAIN))
+    viewer.pack(**packer)
 
     retore = wrapper_button(text="Restore")
-    retore.pack(**wrapper_packer)
+    retore.pack(**packer | {"padx": (50, 0)})
 
     deleter = wrapper_button(text="Discard Save")
-    deleter.pack(**wrapper_packer)
+    deleter.pack(**packer)
 
     scroll = Scrollbar(TOP)
     scroll.pack(side="right", fill=Y)
+
+    statistics = wrapper_button(text="Statistics")
+    statistics.pack(**packer)
 
     MAIN = Listbox(TOP, yscrollcommand=scroll.set)
     MAIN.pack(expand=True, fill=BOTH)
@@ -235,10 +327,12 @@ def manage_saves_widget():
 
     join = Path(__file__).parent
 
+    table: dict[str, Path] = {}
+
     for dir in gamemode:
         dir = join / dir
 
-        table = {d.name: d for d in dir.iterdir() if d.is_dir()}
+        table |= {d.name: d for d in dir.iterdir() if d.is_dir()}
 
         MAIN.insert(END, *table.keys())
 
@@ -572,9 +666,9 @@ button = Button(tab5, text="Copy Claim Command", font=("", 10), command=copy_com
 button.pack(pady=20, anchor="center")
 
 button = Button(
-    tab5, text="Claim Code (Remove from list)", font=("", 10), command=claim_command
+    tab5, text="Claim Code (Remove from list)", font=" 10", command=claim_command
 )
-button.pack(pady=50, anchor="center")
+button.pack(pady=(50, 0), anchor="center")
 
 
 # save changes upon exiting
