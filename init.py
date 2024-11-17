@@ -84,6 +84,7 @@ settings_keys: list[str] = [
     "def_time",
     "open_dirname",
     "unclaimed",
+    "restore",
 ]
 
 # default values of the settings
@@ -100,6 +101,7 @@ settings_base_values: list[ContentsType] = [
     5 * 60,
     False,
     {},
+    [],
 ]
 
 # we modify the original function to pretty print
@@ -143,6 +145,7 @@ class Settings:
     def_time: int = 5 * 60
     open_dirname: bool = False
     unclaimed: dict[str, str] = field(default_factory=dict)
+    restore: list[str] = field(default_factory=list)
 
     # guard
     # dunder to be ignored

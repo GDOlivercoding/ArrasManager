@@ -14,7 +14,6 @@ from init import (
 )
 
 from tkinter import (    
-    LEFT,
     Frame,
     Tk,
     Label,
@@ -44,7 +43,7 @@ from tkinter import (
 from tkinter import ttk
 from datetime import datetime
 from json import load
-from typing import Never, TypedDict
+from typing import Never
 import webbrowser
 from pathlib import Path
 from os import startfile
@@ -242,24 +241,18 @@ def manage_saves_widget():
             tk.destroy()
             return
             
-        if data.single_ss in [Path(s).stem for s in _files.keys()]:
-            ss1, ss2 = [*path.glob(f"{data.single_ss}.*"), None]
-        else:
-            # this is kinda hard
-            # im gonna have to rewrite this eventually
-            # we will get the suffix, and then search based on the stem and suffix combined
 
-            for suffix in ["png", "jpg", "jpeg"]:
+        for suffix in ["png", "jpg", "jpeg"]:
 
-                images = list(path.glob(f"*.{suffix}"))
+            images = list(path.glob(f"*.{suffix}"))
 
-                if (amt := len(images)) == 2:
-                    ss1, ss2 = images
-                    break
+            if (amt := len(images)) == 2:
+                ss1, ss2 = images
+                break
 
-                elif amt == 1:
-                    ss1, ss2 = [*images, None]
-                    break
+            elif amt == 1:
+                ss1, ss2 = [*images, None]
+                break
 
         try:
             code = code_file.read_text()
@@ -292,6 +285,66 @@ def manage_saves_widget():
         open_button = Button(ss_frame, text="Open Location", command=lambda: os.startfile(path))
         open_button.pack(side="left", pady=20)
 
+    def restore(listbox: Listbox):
+
+        indice = listbox.curselection()
+
+        if not indice:
+            mbox.showinfo("Nothing selected", "No save selected")
+            return
+        
+        indice = indice[0]
+
+        name = listbox.get(indice)
+
+        if name not in table:
+            mbox.showerror("Dummy!!!!", "This is not a save!"
+                           "\nThis is a seperator to make it more readable!")
+            return
+
+        path = table[name]
+
+        with (path / "code.txt").open("r") as file:
+            code = file.read()
+
+        if code in data.restore:
+            ans = mbox.askyesno("Are you sure?", 
+                            "Remove target save from restore detection")
+            
+            if not ans:
+                return
+            
+            data.restore.remove(code)
+
+            mbox.showinfo("Success", "Removed restore detection")
+            return
+
+        ans = mbox.askyesno("Are you sure?", 
+                            "If i detect a save which might be a restore of another one"
+                            "\ni will merge the past save with the new one")
+        
+        if not ans:
+            return
+        
+        try:
+            with (path / "code.txt").open("r") as file:
+                code = file.read()
+        except Exception as e:
+            mbox.showerror("Error", f"Cannot find or read code file of {str(path)}:"
+                           f"\n{str(e)}")
+            return
+
+        data.restore.append(code)
+
+        listbox.delete(indice)
+        listbox.insert(indice, name + RESTORE_STRING)
+
+        keep = table[name]
+        del table[name]
+        table[name + RESTORE_STRING] = keep
+
+        mbox.showinfo("Success", "Added restore detection")
+
     wrapper = Frame(TOP)
     wrapper.pack(side="top", anchor="w")
 
@@ -301,7 +354,7 @@ def manage_saves_widget():
     viewer = wrapper_button(text="View", command=lambda: _view(MAIN))
     viewer.pack(**packer)
 
-    retore = wrapper_button(text="Restore")
+    retore = wrapper_button(text="Restore", command=lambda: restore(MAIN))
     retore.pack(**packer | {"padx": (50, 0)})
 
     deleter = wrapper_button(text="Discard Save")
@@ -324,13 +377,32 @@ def manage_saves_widget():
 
     table: dict[str, Path] = {}
 
+    SEP_LEN = 25
+    RESTORE_STRING = " - Restoring"
+
     for name in gamemode:
         dir = join / name
 
-        table |= {d.name: d for d in dir.iterdir() if d.is_dir()}
+        temp = {}
 
-        MAIN.insert(END, "-" * 25, name, "-" * 25)
-        MAIN.insert(END, *table.keys())
+        for d in (d for d in dir.iterdir() if d.is_dir()):
+            try:
+                code = (d / "code.txt").read_text()
+            except Exception as e:
+                mbox.showerror("Cannot access code", f"Cant get code for {str(d)}"
+                               f"\n{str(e)}")
+            if code in data.restore:
+                i_name = d.name + RESTORE_STRING
+            else:
+                i_name = d.name
+
+            assert name not in table, f"FAILSAFE NAME STRING IN TABLE: {name}"
+            temp[i_name] = d
+
+        table.update(temp)
+
+        MAIN.insert(END, "-" * SEP_LEN, name, "-" * SEP_LEN)     
+        MAIN.insert(END, *temp.keys())
 
     TOP.mainloop()
 
