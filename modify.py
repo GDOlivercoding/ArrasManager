@@ -314,7 +314,7 @@ def manage_saves_widget():
             if not ans:
                 return
             
-            data.restore.remove(code)
+            del data.restore[code]
 
             mbox.showinfo("Success", "Removed restore detection")
             return
@@ -334,14 +334,12 @@ def manage_saves_widget():
                            f"\n{str(e)}")
             return
 
-        data.restore.append(code)
+        data.restore[code] = str(table[name])
 
         listbox.delete(indice)
         listbox.insert(indice, name + RESTORE_STRING)
 
-        keep = table[name]
-        del table[name]
-        table[name + RESTORE_STRING] = keep
+        table[name + RESTORE_STRING] = table.pop(name)
 
         mbox.showinfo("Success", "Added restore detection")
 
@@ -403,6 +401,8 @@ def manage_saves_widget():
 
         MAIN.insert(END, "-" * SEP_LEN, name, "-" * SEP_LEN)     
         MAIN.insert(END, *temp.keys())
+        if not temp:
+            MAIN.insert(END, f"No Saves for {name}", "")
 
     TOP.mainloop()
 

@@ -61,16 +61,22 @@ class CodeData:
         self.cls = parts[3]
         self.build = parts[4]
         self.runtime = int(parts[6])
-
+        self.kills = int(parts[7])
+        self.assists = int(parts[8])
+        self.boss_kills = int(parts[9])
+        
         # we seperate this to change the message into something else since format_score gives a ValueError
         try:
-            self.score = format_score(int(parts[5]))
+            self.raw_score = int(parts[5])
+            self.score = format_score(self.raw_score)
         except ValueError as e:
             ExceptionHandler(str(e))
 
         self.gamemode = self.match_gamemode()
         self.region = self.match_region()
         self.dirname = self.construct_dirname()
+
+        self.restore = self.restore_check()
 
     def match_gamemode(self) -> GamemodeType:
         """return the gamemode based on its name"""
@@ -115,6 +121,48 @@ class CodeData:
         path = Path(__file__).parent / self.gamemode / Path(f"{formatted} {self.score} {self.cls}")
 
         return path
+    
+    def restore_check(self) -> str:
+
+        # make sure to write a lot of comments here
+        # figure out of self.code is a restore of
+        # one of codes in data.restore
+
+        return ''
+
+        for code in data.restore:
+
+            parts = code.split(":")
+            server = parts[1]
+            gamemode_tag = parts[2]
+            cls = parts[3]
+            build = parts[4]
+            score = int(parts[5])
+            runtime = int(parts[6])
+            kills = int(parts[7])
+            assists = int(parts[8])
+            boss_kills = int(parts[9])
+
+            # if any of runtime, score, kills, assists or boss kills
+            # is higher on the restored code it cant be a restore
+
+
+            if (runtime > self.runtime 
+                or score > self.raw_score
+                or kills > self.kills
+                or assists > self.assists
+                or boss_kills > self.boss_kills):
+                continue
+
+            # old dreadnoughts always have to be old dreadnoughts
+            if "olds" in gamemode_tag:
+                if "olds" not in self.gamemode_tag:
+                    continue
+                else:
+                    ... # hard
+
+
+        return ''
 
 class FileIO:
     def __init__(self) -> None:
@@ -125,12 +173,20 @@ class FileIO:
 
         ctx.dirname.mkdir(exist_ok=True)
 
+        self.restore_checks()
+
         with (ctx.dirname / "code.txt").open("w", encoding=ENCODING) as file:
             file.write(ctx.code)
 
         self.filenames = self.add_ss()
 
         WriteUnclaimed(data, ctx.code)
+
+    def restore_checks(self):
+        if not ctx.restore:
+            return
+        
+        
 
     def add_ss(self) -> tuple[Path | None, Path | None]:  # not a type hinting error
 

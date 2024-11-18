@@ -145,7 +145,7 @@ class Settings:
     def_time: int = 5 * 60
     open_dirname: bool = False
     unclaimed: dict[str, str] = field(default_factory=dict)
-    restore: list[str] = field(default_factory=list)
+    restore: dict[str, str] = field(default_factory=dict)
 
     # guard
     # dunder to be ignored
@@ -156,6 +156,9 @@ class Settings:
         # do not remove this, when creating an object
         # the original value is string
         self.ss_dir = Path(self.ss_dir)
+
+        # for self.restore
+        # we will convert only when we are going to use it
 
     def get_dict(self) -> dict[str, ContentsType]:
         """Return the Settings object converted to a dictionary and ready to go!
