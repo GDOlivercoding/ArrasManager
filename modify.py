@@ -88,14 +88,12 @@ with file_settings.open("r") as file:
 # I HATE MUTABLE HELL
 START_DATA = create_dict(data.get_dict())
 
-# MAINHEADER:
 MainHeader = Label(
     text="All changes are automatically recorded when closing the program",
     font=("great vibes", 15),
 )
 MainHeader.pack(anchor="center")
 
-# CONSTRUCT MAIN TAB WINDOWS
 mytab = ttk.Notebook(window)
 tab1 = ttk.Frame(mytab)
 tab3 = ttk.Frame(mytab)
@@ -776,15 +774,14 @@ export_log.pack(anchor="nw", pady=(20, 0))
 saves_label = Label(tab3, text="Saves Location", font=("great vibes", 30))
 saves_label.pack(anchor="nw", pady=(20, 0))
 
-def open_saves():
-    startfile(Path(__file__).parent)
+open_saves = lambda: startfile(Path(__file__).parent)
 
 open_saves_button = Button(tab3, text="Open", command=open_saves)
 open_saves_button.pack(anchor="w", padx=(10, 0), pady=(5, 0))
 
 # tab 5: Unclaimed
 def copy_command():
-    global listbox
+
     selection = listbox.curselection()
     if not selection:
         mbox.showerror(title="ERROR", message="No code selected")
@@ -863,7 +860,7 @@ def Save(
     if scale_int in (0, 1, 2):
         data.pic_export = scale_int
     else:
-        data.pic_export = 0;
+        data.pic_export = 0
 
     data.fullscreen_ss = Value.fullscreen.get()
     data.windowed_ss = Value.windowed.get()
@@ -872,17 +869,16 @@ def Save(
     # dump settings
     with file_settings.open("w") as file:
         dump(data.get_dict(), fp=file)
-    # if logdata was set to be reset do not write to it
-    if was_deleted:
+
+    # if logdata was set to be reset or if the user didnt change anything
+    # do not write to it
+
+    if was_deleted or is_data_same(data, START_DATA):
         exit()
 
     # ------------------------------------------------------------
     # logdata block
     # ------------------------------------------------------------
-
-
-    if is_data_same(data, START_DATA):
-        exit()
 
     with file_logdata.open("r", encoding=ENCODING) as file:
         contents = file.readlines()
@@ -922,7 +918,7 @@ total time spent in modify.py: {Value.close_clock - Value.open_clock}
 
 
 window.protocol(
-    "WM_DELETE_WINDOW",#  # WINDOW MANAGER DELETE WINDOW
+    "WM_DELETE_WINDOW",  # WINDOW MANAGER DELETE WINDOW
     lambda data=data: Save(
         data,
         var_confirmation,
