@@ -1,4 +1,5 @@
 import os
+from typing import Never
 from init import (
     Settings,
     partial,
@@ -14,6 +15,7 @@ from init import (
 )
 
 from tkinter import (    
+    Entry,
     Frame,
     Tk,
     Label,
@@ -43,7 +45,6 @@ from tkinter import (
 from tkinter import ttk
 from datetime import datetime
 from json import load
-from typing import Never
 import webbrowser
 from pathlib import Path
 from os import startfile
@@ -103,6 +104,15 @@ mytab.pack(anchor="nw")
 # --------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------
 
+# convenince functions
+
+def listbox_edit(listbox: Listbox, index: int, new: str):
+    listbox.delete(index)
+    listbox.insert(index, new)
+
+def listbox_insert(listbox: Listbox, elements: list[str]):
+    listbox.delete(0, END)
+    listbox.insert(END, *elements)
 
 def delete_logger() -> None:
     global was_deleted  # check global environment in envs
@@ -240,7 +250,8 @@ def manage_saves_widget():
                            "and try again")
             tk.destroy()
             return
-            
+
+        ss1, ss2 = None, None
 
         for suffix in ["png", "jpg", "jpeg"]:
 
@@ -251,7 +262,7 @@ def manage_saves_widget():
                 break
 
             elif amt == 1:
-                ss1, ss2 = [*images, None]
+                ss1, ss2 = images[0], None
                 break
 
         try:
@@ -315,6 +326,7 @@ def manage_saves_widget():
                 return
             
             del data.restore[code]
+            listbox_edit(listbox, indice, new=name.removesuffix(RESTORE_STRING))
 
             mbox.showinfo("Success", "Removed restore detection")
             return
@@ -336,12 +348,26 @@ def manage_saves_widget():
 
         data.restore[code] = str(table[name])
 
-        listbox.delete(indice)
-        listbox.insert(indice, name + RESTORE_STRING)
+        listbox_edit(listbox, indice, new=name + RESTORE_STRING)
 
         table[name + RESTORE_STRING] = table.pop(name)
 
         mbox.showinfo("Success", "Added restore detection")
+
+    def search_fn(listbox: Listbox, entry: Entry):
+        get = entry.get().lower()
+
+        if not get:
+            listbox_insert(listbox, table_seps)
+            return
+        
+        new_table = []
+
+        for name in table.keys():
+            if get in name.lower():
+                new_table.append(name)
+
+        listbox_insert(listbox, new_table)
 
     wrapper = Frame(TOP)
     wrapper.pack(side="top", anchor="w")
@@ -364,6 +390,17 @@ def manage_saves_widget():
     statistics = wrapper_button(text="Statistics")
     statistics.pack(**packer)
 
+    # search bar
+
+    search_frame = Frame(TOP)
+    search_frame.pack()
+
+    search = Entry(search_frame, width=80, font="TkDefaultFont 15")
+    search.pack(anchor="center", side="left")
+
+    search_btn = Button(search_frame, text="Search", command=lambda: search_fn(MAIN, search))
+    search_btn.pack(side="right")
+
     MAIN = Listbox(TOP, yscrollcommand=scroll.set)
     MAIN.pack(expand=True, fill=BOTH)
     
@@ -373,10 +410,16 @@ def manage_saves_widget():
 
     join = Path(__file__).parent
 
+    # table is on the functional side
+    # table seps is to be inserted into the listbox
+
     table: dict[str, Path] = {}
+    table_seps: list[str] = []
 
     SEP_LEN = 25
-    RESTORE_STRING = " - Restoring"
+    SEP_CHAR = "-"
+    SEP = SEP_CHAR * SEP_LEN
+    RESTORE_STRING = " - Restoring" 
 
     for name in gamemode:
         dir = join / name
@@ -389,6 +432,8 @@ def manage_saves_widget():
             except Exception as e:
                 mbox.showerror("Cannot access code", f"Cant get code for {str(d)}"
                                f"\n{str(e)}")
+                continue
+                
             if code in data.restore:
                 i_name = d.name + RESTORE_STRING
             else:
@@ -399,11 +444,15 @@ def manage_saves_widget():
 
         table.update(temp)
 
-        MAIN.insert(END, "-" * SEP_LEN, name, "-" * SEP_LEN)     
-        MAIN.insert(END, *temp.keys())
-        if not temp:
-            MAIN.insert(END, f"No Saves for {name}", "")
+        table_seps.extend([SEP, name, SEP, *temp]) 
 
+        if not temp:
+            table_seps.append(f"No Saves for {name}")   
+            table_seps.append("") # to make a space we have to do this because newlines dont work  
+
+    listbox_insert(MAIN, table_seps)  
+
+    TOP.bind("<Return>", lambda event: search_fn(MAIN, search))
     TOP.mainloop()
 
 

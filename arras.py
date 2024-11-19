@@ -1,5 +1,4 @@
 from init import (
-    # names from init for slight boot speedup  
     mbox,
     dump,
 
