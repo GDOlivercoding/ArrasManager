@@ -82,7 +82,7 @@ class CodeData:
 
         gamemode = "Normal"
 
-        for name, mode in {"old": "Olddreads", "forge": "Newdreads"}.items():
+        for name, mode in {"olds": "Olddreads", "forge": "Newdreads"}.items():
             if name in self.gamemode_tag:
                 gamemode = mode
 

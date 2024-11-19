@@ -67,6 +67,14 @@ class Value:
     close_clock: datetime
 
 
+def is_data_same(data1: Settings, data2: Settings) -> bool:
+
+    for k, v in vars(data1).items():
+        if v != getattr(data2, k):
+            return False
+    
+    return True
+
 # main window
 window = Tk()
 window.title("Modify how arras.py functions")
@@ -76,6 +84,9 @@ window.resizable(False, False)
 # read settings
 with file_settings.open("r") as file:
     data = create_dict(load(fp=file))
+
+# I HATE MUTABLE HELL
+START_DATA = create_dict(data.get_dict())
 
 # MAINHEADER:
 MainHeader = Label(
@@ -87,15 +98,13 @@ MainHeader.pack(anchor="center")
 # CONSTRUCT MAIN TAB WINDOWS
 mytab = ttk.Notebook(window)
 tab1 = ttk.Frame(mytab)
-#tab2 = ttk.Frame(mytab)
 tab3 = ttk.Frame(mytab)
-#tab4 = ttk.Frame(mytab)
 tab5 = ttk.Frame(mytab)
+
 mytab.add(tab1, text="Settings")
-#mytab.add(tab2, text="App Info")
 mytab.add(tab3, text="View Local Files")
-#mytab.add(tab4, text="Advanced Automation")
 mytab.add(tab5, text="Unclaimed Saves")
+
 mytab.pack(anchor="nw")
 
 # --------------------------------------------------------------------------------
@@ -104,7 +113,7 @@ mytab.pack(anchor="nw")
 # --------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------
 
-# convenince functions
+# convenience functions
 
 def listbox_edit(listbox: Listbox, index: int, new: str):
     listbox.delete(index)
@@ -209,20 +218,46 @@ def manage_saves_widget():
     TOP.geometry(geometry)
     TOP.title("Manage saves - modify.py")
 
-    def _view(listbox: Listbox): 
-
+    def _generic_indice_checks(listbox):
         indice = listbox.curselection()
 
         if not indice:
             mbox.showinfo("Nothing selected", "No save selected")
             return
         
-        name = listbox.get(indice[0])
+        indice = indice[0]
+
+        name = listbox.get(indice)
 
         if name not in table:
             mbox.showerror("Dummy!!!!", "This is not a save!"
                            "\nThis is a seperator to make it more readable!")
             return
+
+        return (name, indice)
+
+    def _view(listbox: Listbox): 
+
+        def match_gamemode(gamemode_tag) -> str:
+            """return the gamemode based on its name"""
+
+            gamemode = "Normal"
+
+            for name, mode in {"olds": "Olddreads", "forge": "Newdreads"}.items():
+                if name in gamemode_tag:
+                    gamemode = mode
+
+            for tag, mode in {"g": "Grownth", "a": "Arms Race"}.items():
+                if gamemode_tag.startswith(tag):
+                    gamemode = mode
+
+            return gamemode
+
+        get = _generic_indice_checks(listbox)
+        if not get:
+            return
+        
+        name, indice = get
 
         tk = Tk()
         tk.title(title := f"Viewing {name}")
@@ -277,14 +312,14 @@ def manage_saves_widget():
 
         to_insert.append(f"code: {code}")
         to_insert.append(f"path: {str(path)}")
+        to_insert.append(f"gamemode: {match_gamemode(code.split(":")[2])}")
 
         text.insert(END, "\n".join(to_insert))
         text.config(state="disabled")
 
         #Label(tk, text="Images", font="TkDefaultFont 15").pack(anchor="s")
 
-        def missing():
-            mbox.showinfo("Missing", "This screenshot is missing")
+        missing = lambda: mbox.showinfo("Missing", "This screenshot is missing")
 
         ss_frame = Frame(tk)
         ss_frame.pack(side="bottom")
@@ -298,20 +333,11 @@ def manage_saves_widget():
 
     def restore(listbox: Listbox):
 
-        indice = listbox.curselection()
-
-        if not indice:
-            mbox.showinfo("Nothing selected", "No save selected")
+        get = _generic_indice_checks(listbox)
+        if not get:
             return
         
-        indice = indice[0]
-
-        name = listbox.get(indice)
-
-        if name not in table:
-            mbox.showerror("Dummy!!!!", "This is not a save!"
-                           "\nThis is a seperator to make it more readable!")
-            return
+        name, indice = get
 
         path = table[name]
 
@@ -369,6 +395,34 @@ def manage_saves_widget():
 
         listbox_insert(listbox, new_table)
 
+    def end_run(listbox: Listbox):
+        get = _generic_indice_checks(listbox)
+        if not get:
+            return
+        
+        name, indice = get
+
+        ans = mbox.askyesno("Confirmation", 
+                            "This will archive this save in the Ended Runs directory"
+                            "The history of the save will not be deleted")
+        
+        if not ans:
+            return
+        
+        _path = Path(__file__).parent / "Ended Runs"
+
+        save_path = table[name]
+
+        # i tested this and it works as expected
+        save_path.rename(_path / save_path.name)
+
+        # absolutely obliterate the save from memory lol
+        table_seps.remove(name)
+        del table[name]
+        listbox.delete(indice)
+
+        mbox.showinfo("Success", "Successfully archived saved (Ended run)")
+
     wrapper = Frame(TOP)
     wrapper.pack(side="top", anchor="w")
 
@@ -381,7 +435,7 @@ def manage_saves_widget():
     retore = wrapper_button(text="Restore", command=lambda: restore(MAIN))
     retore.pack(**packer | {"padx": (50, 0)})
 
-    deleter = wrapper_button(text="Discard Save")
+    deleter = wrapper_button(text="Discard Save", command=lambda: end_run(MAIN))
     deleter.pack(**packer)
 
     scroll = Scrollbar(TOP)
@@ -427,12 +481,14 @@ def manage_saves_widget():
         temp = {}
 
         for d in (d for d in dir.iterdir() if d.is_dir()):
+
+            code = None
+
             try:
                 code = (d / "code.txt").read_text()
             except Exception as e:
                 mbox.showerror("Cannot access code", f"Cant get code for {str(d)}"
-                               f"\n{str(e)}")
-                continue
+                               f"\n{str(e)}")               
                 
             if code in data.restore:
                 i_name = d.name + RESTORE_STRING
@@ -793,7 +849,7 @@ def Save(
     data: Settings,
     var_confirmation: BooleanVar,
     var_dirname: BooleanVar,
-    scale: Scale,   
+    pic_scale: Scale,   
 ) -> Never:
 
     Value.close_clock = datetime.now()
@@ -802,7 +858,7 @@ def Save(
     data.confirmation = var_confirmation.get()
     data.open_dirname = var_dirname.get()
 
-    scale_int = scale.get()
+    scale_int = pic_scale.get()
 
     if scale_int in (0, 1, 2):
         data.pic_export = scale_int
@@ -823,6 +879,10 @@ def Save(
     # ------------------------------------------------------------
     # logdata block
     # ------------------------------------------------------------
+
+
+    if is_data_same(data, START_DATA):
+        exit()
 
     with file_logdata.open("r", encoding=ENCODING) as file:
         contents = file.readlines()
