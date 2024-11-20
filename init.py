@@ -230,25 +230,27 @@ def deformat_score(score: str) -> int:
             l_score = list(score)
             l_score.pop()
             l_score.remove(".")
-            return int("".join(score)) * 10_000
+            return int("".join(l_score)) * 10_000
         
         elif score[2] == ".":
             l_score = list(score)
             l_score.pop()
             l_score.remove(".")
-            return int("".join(score)) * 10_000
+            return int("".join(l_score)) * 10_000
         
         elif "." not in score:
             return int(score.removesuffix("m")) * 1_000_000
+        
+        dummy()
         
     elif score.endswith("b"):
         if score[1] != ".":
             dummy()
         
-        score = list(score)
-        score.pop()
-        del score[1]
-        return int("".join(score)) * 100_000_000
+        l_score = list(score)
+        l_score.pop()
+        del l_score[1]
+        return int("".join(l_score)) * 100_000_000
     
     raise ValueError("Invalid score: %s" % score)
 
