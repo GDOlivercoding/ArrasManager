@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 from typing import Never
 from init import (
@@ -228,8 +229,7 @@ def manage_saves_widget():
         name = listbox.get(indice)
 
         if name not in table:
-            mbox.showerror("Dummy!!!!", "This is not a save!"
-                           "\nThis is a seperator to make it more readable!")
+            mbox.showerror("Nothing selected", "No save selected")
             return
 
         return (name, indice)
@@ -391,6 +391,9 @@ def manage_saves_widget():
             if get in name.lower():
                 new_table.append(name)
 
+        if not new_table:
+            new_table.append(f"No matches for '{get}'")
+
         listbox_insert(listbox, new_table)
 
     def end_run(listbox: Listbox):
@@ -421,6 +424,34 @@ def manage_saves_widget():
 
         mbox.showinfo("Success", "Successfully archived saved (Ended run)")
 
+    def statistics():
+        wind = Toplevel()
+        wind.title("Save Statistics")
+        wind.geometry(geometry)
+
+        text = Text(wind)
+        text.pack(expand=True, fill=BOTH)
+
+        total_score = 0
+
+        for path in table.values():
+            score = int((path / "code.txt").read_text().split(":")[5])
+            total_score += score
+
+        to_insert = [f"Total saved scores: {len(table) + len(ended_runs_table)}",
+                     f"Total saves: {len(table)}"
+                    ]
+
+        for k, v in statistics_table.items():
+            to_insert.append(f"{k} saves: {v}")
+        
+        to_insert.append(f"Ended runs: {len(ended_runs_table)}")
+        to_insert.append(f"Total hours spent waiting to save: {(len(table) + len(ended_runs_table)) * 5 / 60:.2f}h")
+        to_insert.append(f"Total amount of score saved: {total_score:,}")
+
+        text.insert(END, "\n".join(to_insert))
+
+
     wrapper = Frame(TOP)
     wrapper.pack(side="top", anchor="w")
 
@@ -439,15 +470,15 @@ def manage_saves_widget():
     scroll = Scrollbar(TOP)
     scroll.pack(side="right", fill=Y)
 
-    statistics = wrapper_button(text="Statistics")
-    statistics.pack(**packer)
+    statistics_button = wrapper_button(text="Statistics", command=statistics)
+    statistics_button.pack(**packer)
 
     # search bar
 
     search_frame = Frame(TOP)
     search_frame.pack()
 
-    search = Entry(search_frame, width=80, font="TkDefaultFont 15")
+    search = Entry(search_frame, width=70, font="TkDefaultFont 15")
     search.pack(anchor="center", side="left")
 
     search_btn = Button(search_frame, text="Search", command=lambda: search_fn(MAIN, search))
@@ -467,13 +498,15 @@ def manage_saves_widget():
 
     table: dict[str, Path] = {}
     table_seps: list[str] = []
+    statistics_table: dict[str, int] = {}
 
     SEP_LEN = 25
     SEP_CHAR = "-"
     SEP = SEP_CHAR * SEP_LEN
     RESTORE_STRING = " - Restoring" 
+    ENDED_RUNS = "Ended Runs"
 
-    for name in gamemode:
+    for name in gamemode + [ENDED_RUNS]:
         dir = join / name
 
         temp = {}
@@ -485,8 +518,9 @@ def manage_saves_widget():
             try:
                 code = (d / "code.txt").read_text()
             except Exception as e:
-                mbox.showerror("Cannot access code", f"Cant get code for {str(d)}"
-                               f"\n{str(e)}")               
+                if name != ENDED_RUNS:
+                    mbox.showerror("Cannot access code", f"Cant get code for {str(d)}"
+                                f"\n{str(e)}")               
                 
             if code in data.restore:
                 i_name = d.name + RESTORE_STRING
@@ -496,8 +530,13 @@ def manage_saves_widget():
             assert name not in table, f"FAILSAFE NAME STRING IN TABLE: {name}"
             temp[i_name] = d
 
+        if name == ENDED_RUNS:
+            ended_runs_table = {**temp}
+            continue # (break)
+
         table.update(temp)
 
+        statistics_table[name] = len(temp)
         table_seps.extend([SEP, name, SEP, *temp]) 
 
         if not temp:

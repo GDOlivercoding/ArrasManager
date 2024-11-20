@@ -101,7 +101,7 @@ settings_base_values: list[ContentsType] = [
     5 * 60,
     False,
     {},
-    [],
+    {},
 ]
 
 # we modify the original function to pretty print
@@ -210,6 +210,47 @@ def format_score(raw_i: int, /) -> str:
 
         case _:
             raise ValueError(f"Score Integer isn't in the savable range: {len(raw)}")
+        
+def deformat_score(score: str) -> int:
+
+    def dummy():
+        raise ValueError("Invalid score: %s" % score)
+
+    try:
+        return int(score)
+    except ValueError:
+        pass
+
+    if score.endswith("K"):
+        return int(score[:3]) * 1_000
+    
+    elif score.endswith("m"):
+
+        if score[1] == ".":
+            score = list(score)
+            score.pop()
+            score.remove(".")
+            return int("".join(score)) * 10_000
+        
+        elif score[2] == ".":
+            score = list(score)
+            score.pop()
+            score.remove(".")
+            return int("".join(score)) * 10_000
+        
+        elif "." not in score:
+            return int(score.removesuffix("m")) * 1_000_000
+        
+    elif score.endswith("b"):
+        if score[1] != ".":
+            dummy()
+        
+        score = list(score)
+        score.pop()
+        del score[1]
+        return int("".join(score)) * 100_000_000
+    
+    raise ValueError("Invalid score: %s" % score)
 
 # get a code from the user
 # always returns a code
