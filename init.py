@@ -227,15 +227,15 @@ def deformat_score(score: str) -> int:
     elif score.endswith("m"):
 
         if score[1] == ".":
-            score = list(score)
-            score.pop()
-            score.remove(".")
+            l_score = list(score)
+            l_score.pop()
+            l_score.remove(".")
             return int("".join(score)) * 10_000
         
         elif score[2] == ".":
-            score = list(score)
-            score.pop()
-            score.remove(".")
+            l_score = list(score)
+            l_score.pop()
+            l_score.remove(".")
             return int("".join(score)) * 10_000
         
         elif "." not in score:
