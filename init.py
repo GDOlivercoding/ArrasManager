@@ -167,7 +167,7 @@ class Settings:
 
         return {
             k: (v if isinstance(v, JSONSerializable) else str(v))
-            for k, v in vars(self).items()
+            for k, v in self.__dict__.items()
         }
 
 # as per the docstring, i use this as a shortand initializer for the settngs file

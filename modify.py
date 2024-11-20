@@ -122,7 +122,7 @@ def listbox_insert(listbox: Listbox, elements: list[str]):
     listbox.insert(END, *elements)
 
 def delete_logger() -> None:
-    global was_deleted  # check global environment in envs
+    global was_deleted  
 
     if not mbox.askyesno(
         title="Confirmation",
