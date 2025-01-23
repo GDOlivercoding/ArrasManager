@@ -43,9 +43,11 @@ VALID_CODE_INTEGER: Final = 10
 # traceback.format_exc() returns this string when there is no past exceptions raised
 NO_EXCEPTION: Final = "NoneType: None"
 
+
 # SupporsWrite proto
 class SupportsWrite(Protocol):
     def write(self, data: Any, /) -> Any: ...
+
 
 # for the json library, all these types should be acceptable
 # to be json serialized
@@ -104,14 +106,17 @@ settings_base_values: list[ContentsType] = [
     {},
 ]
 
+
 # we modify the original function to pretty print
 def dump(obj: Any, fp: SupportsWrite, indent=4):
     return _dump(obj=obj, fp=fp, indent=indent)
+
 
 # my own simple partial
 # saves some performance because we dont have to
 # import the entiredy of functools
 # type hinted, and not overflood with unused features
+
 
 # used by tk apps to make repetitive widgets
 class partial[T, **P]:
@@ -125,9 +130,11 @@ class partial[T, **P]:
     def __call__(self: Self, *args: P.args, **kwargs: P.kwargs) -> T:
         return self.func(*self.args, *args, **self.kwargs, **kwargs)
 
+
 # this class represents the settings.json file
 # commonly referenced as `data` in files where they
 # want to use the settings
+
 
 @dataclass
 class Settings:
@@ -170,9 +177,11 @@ class Settings:
             for k, v in self.__dict__.items()
         }
 
+
 # as per the docstring, i use this as a shortand initializer for the settngs file
 # this still stays, as its a nice way to guard all instance of it
 # though, obsolete
+
 
 def create_dict(contents: dict[str, ContentsType], /) -> Settings:
     """We unpack contents as a dictionary into the Settings object, this ensures the positional arguments dont matter"""
@@ -181,18 +190,19 @@ def create_dict(contents: dict[str, ContentsType], /) -> Settings:
 
     return Settings(**contents)  # type: ignore
 
+
 # receive a score integer in the savable range
 # and convert it into something we would put
 # in a directory name
 # looks aboslutely horrendous but i can guarantee
 # you that i will never edit this function
 
+
 def format_score(raw_i: int, /) -> str:
     """return the raw score integer formatted"""
     raw = str(raw_i)  # we want an integer but we will format it as a string
 
     match len(raw):
-
         case 6:  # 784_125 = 784K
             return f"{raw[:3]}K"
 
@@ -210,9 +220,9 @@ def format_score(raw_i: int, /) -> str:
 
         case _:
             raise ValueError(f"Score Integer isn't in the savable range: {len(raw)}")
-        
-def deformat_score(score: str) -> int:
 
+
+def deformat_score(score: str) -> int:
     def dummy():
         raise ValueError("Invalid score: %s" % score)
 
@@ -223,39 +233,40 @@ def deformat_score(score: str) -> int:
 
     if score.endswith("K"):
         return int(score[:3]) * 1_000
-    
-    elif score.endswith("m"):
 
+    elif score.endswith("m"):
         if score[1] == ".":
             l_score = list(score)
             l_score.pop()
             l_score.remove(".")
             return int("".join(l_score)) * 10_000
-        
+
         elif score[2] == ".":
             l_score = list(score)
             l_score.pop()
             l_score.remove(".")
             return int("".join(l_score)) * 10_000
-        
+
         elif "." not in score:
             return int(score.removesuffix("m")) * 1_000_000
-        
+
         dummy()
-        
+
     elif score.endswith("b"):
         if score[1] != ".":
             dummy()
-        
+
         l_score = list(score)
         l_score.pop()
         del l_score[1]
         return int("".join(l_score)) * 100_000_000
-    
+
     raise ValueError("Invalid score: %s" % score)
+
 
 # get a code from the user
 # always returns a code
+
 
 def get_code() -> str:
     try:
@@ -274,6 +285,7 @@ def get_code() -> str:
                 return code
             else:
                 print("Invalid code")
+
 
 # contains defaults for Settings object
 write: dict[str, ContentsType] = {

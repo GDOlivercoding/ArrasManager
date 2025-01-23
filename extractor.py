@@ -4,6 +4,7 @@ from tkinter import ttk, messagebox as mbox
 from init import GamemodeType, RegionType, format_score, regions
 from typing import Literal
 
+
 def match_region(server: str) -> RegionType:
     region = "Unknown"
 
@@ -64,7 +65,6 @@ DataTupleType = tuple[
 
 
 def get_analytics(code: str) -> DataTupleType:
-
     parts = code.split(":")
     # sample code
     # (6f0cb12f:#eo:e5forge:Arbitrator-Astronomic:0/2/6/10/10/10/10/12/0/0:7148698:20683:71:13:4:5017:62:1710762682:JDo5u44GPYop3lwZ)

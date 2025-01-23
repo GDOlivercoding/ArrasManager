@@ -1,19 +1,16 @@
 from init import (
     mbox,
     dump,
-
     GamemodeType,
     RegionType,
     Settings,
     format_score,
     create_dict,
     get_code,
-
     NONE,
     SINGLE,
     BOTH,
     NO_EXCEPTION,
-
     regions,
     file_settings,
     file_logdata,
@@ -63,7 +60,7 @@ class CodeData:
         self.kills = int(parts[7])
         self.assists = int(parts[8])
         self.boss_kills = int(parts[9])
-        
+
         # we seperate this to change the message into something else since format_score gives a ValueError
         try:
             self.raw_score = int(parts[5])
@@ -117,20 +114,22 @@ class CodeData:
         formatted = f"{month}.{day}."
         self.datetime = formatted
 
-        path = Path(__file__).parent / self.gamemode / Path(f"{formatted} {self.score} {self.cls}")
+        path = (
+            Path(__file__).parent
+            / self.gamemode
+            / Path(f"{formatted} {self.score} {self.cls}")
+        )
 
         return path
-    
-    def restore_check(self) -> str:
 
+    def restore_check(self) -> str:
         # make sure to write a lot of comments here
         # figure out of self.code is a restore of
         # one of codes in data.restore
 
-        return ''
+        return ""
 
         for code in data.restore:
-
             parts = code.split(":")
             server = parts[1]
             gamemode_tag = parts[2]
@@ -145,12 +144,13 @@ class CodeData:
             # if any of runtime, score, kills, assists or boss kills
             # is higher on the restored code it cant be a restore
 
-
-            if (runtime > self.runtime 
+            if (
+                runtime > self.runtime
                 or score > self.raw_score
                 or kills > self.kills
                 or assists > self.assists
-                or boss_kills > self.boss_kills):
+                or boss_kills > self.boss_kills
+            ):
                 continue
 
             # old dreadnoughts always have to be old dreadnoughts
@@ -158,10 +158,10 @@ class CodeData:
                 if "olds" not in self.gamemode_tag:
                     continue
                 else:
-                    ... # hard
+                    ...  # hard
 
+        return ""
 
-        return ''
 
 class FileIO:
     def __init__(self) -> None:
@@ -184,12 +184,11 @@ class FileIO:
     def restore_checks(self):
         if not ctx.restore:
             return
-        
-        
 
     def add_ss(self) -> tuple[Path | None, Path | None]:  # not a type hinting error
-
-        if data.pic_export == NONE:  # do not run this function if the user wishes to not save any death ss
+        if (
+            data.pic_export == NONE
+        ):  # do not run this function if the user wishes to not save any death ss
             return (None, None)
 
         if not data.ss_dir.exists():
@@ -242,7 +241,6 @@ class ExceptionHandler:
         )
 
     def write_exception(self) -> None:
-
         if not file_logdata.exists():
             with (base_dir / "Desktop" / f"{date.today()} ArrasErr.log").open(
                 "w", encoding=ENCODING
@@ -372,7 +370,6 @@ class WriteUnclaimed:
     """
 
     def __init__(self, contents: Settings, code: str, /) -> None:
-
         if code in contents.unclaimed.keys():
             mbox.showwarning(
                 title="WARNING", message="This code has already been registered!"
@@ -390,7 +387,6 @@ class WriteUnclaimed:
 # ---------------------------------------------------------------------------------
 
 if not file_settings.exists():
-
     try:
         raise FileNotFoundError(f"Path (File) '{file_settings}' doesn't exist")
     except FileNotFoundError:
@@ -436,6 +432,6 @@ except Exception as e:
         "make sure to backup the code and the screenshot"
         f"\nmessage: {str(e)}\ntraceback can be found in the logger file"
     )
-    exit()  # code unreachable
+    # code unreachable
 
 WriteDown()

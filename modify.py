@@ -1,21 +1,19 @@
-from dataclasses import dataclass
 import os
 from typing import Never
 from init import (
     Settings,
     partial,
     create_dict,
-    dump, 
-
+    dump,
     file_logdata,
     file_settings,
     screenshot_dir,
     base_dir,
     was_deleted,
-    gamemode
+    gamemode,
 )
 
-from tkinter import (    
+from tkinter import (
     Entry,
     Frame,
     Tk,
@@ -29,7 +27,6 @@ from tkinter import (
     Button,
     Scrollbar,
     Listbox,
-
     Y,
     BOTH,
     RIGHT,
@@ -37,10 +34,9 @@ from tkinter import (
     DISABLED,
     END,
     Toplevel,
-
     filedialog as fdialog,
     messagebox as mbox,
-    simpledialog, 
+    simpledialog,
 )
 
 from tkinter import ttk
@@ -59,6 +55,7 @@ geometry = f"{x}x{y}"
 
 ENCODING = "utf-8"
 
+
 class Value:
     windowed: StringVar
     fullscreen: StringVar
@@ -69,12 +66,12 @@ class Value:
 
 
 def is_data_same(data1: Settings, data2: Settings) -> bool:
-
     for k, v in vars(data1).items():
         if v != getattr(data2, k):
             return False
-    
+
     return True
+
 
 # main window
 window = Tk()
@@ -114,16 +111,19 @@ mytab.pack(anchor="nw")
 
 # convenience functions
 
+
 def listbox_edit(listbox: Listbox, index: int, new: str):
     listbox.delete(index)
     listbox.insert(index, new)
+
 
 def listbox_insert(listbox: Listbox, elements: list[str]):
     listbox.delete(0, END)
     listbox.insert(END, *elements)
 
+
 def delete_logger() -> None:
-    global was_deleted  
+    global was_deleted
 
     if not mbox.askyesno(
         title="Confirmation",
@@ -195,7 +195,7 @@ def export_logdata() -> None:
     if not fp:
         mbox.showerror(title="No input", message="No directory selected")
         return
-    
+
     fp = Path(fp)
 
     with (fp / "Logdata copy.txt").open("w") as f:
@@ -206,11 +206,13 @@ def export_logdata() -> None:
         message="Successfully created a copy of the logger file in the desired directory!",
     )
 
+
 def save_button_press(data: Settings) -> None:
     with file_settings.open("w") as file:
         dump(fp=file, obj=data.get_dict())
 
     mbox.showinfo(title="Success", message="Settings saved")
+
 
 def manage_saves_widget():
     TOP = Toplevel(window)
@@ -223,7 +225,7 @@ def manage_saves_widget():
         if not indice:
             mbox.showinfo("Nothing selected", "No save selected")
             return
-        
+
         indice = indice[0]
 
         name = listbox.get(indice)
@@ -234,8 +236,7 @@ def manage_saves_widget():
 
         return (name, indice)
 
-    def _view(listbox: Listbox): 
-
+    def _view(listbox: Listbox):
         def match_gamemode(gamemode_tag) -> str:
             """return the gamemode based on its name"""
 
@@ -254,13 +255,13 @@ def manage_saves_widget():
         get = _generic_indice_checks(listbox)
         if not get:
             return
-        
+
         name, indice = get
 
         tk = Tk()
         tk.title(title := f"Viewing {name}")
         tk.geometry(geometry)
-    
+
         path = table[name]
 
         header = Label(tk, text=title, font="TkDefaultFont 30")
@@ -277,17 +278,18 @@ def manage_saves_widget():
         if "code.txt" in _files.keys():
             code_file = _files["code.txt"]
         else:
-            mbox.showerror("Code file not found", 
-                           f"Cant find code of {str(path)}"
-                           ", create a txt file with the code"
-                           "and try again")
+            mbox.showerror(
+                "Code file not found",
+                f"Cant find code of {str(path)}"
+                ", create a txt file with the code"
+                "and try again",
+            )
             tk.destroy()
             return
 
         ss1, ss2 = None, None
 
         for suffix in ["png", "jpg", "jpeg"]:
-
             images = list(path.glob(f"*.{suffix}"))
 
             if (amt := len(images)) == 2:
@@ -301,40 +303,51 @@ def manage_saves_widget():
         try:
             code = code_file.read_text()
         except Exception:
-            mbox.showerror("Could not get code", 
-                           f"Cant get code of {str(code_file)}"
-                           ", create a txt file with the code"
-                           "and try again")
+            mbox.showerror(
+                "Could not get code",
+                f"Cant get code of {str(code_file)}"
+                ", create a txt file with the code"
+                "and try again",
+            )
             tk.destroy()
             return
 
         to_insert.append(f"code: {code}")
         to_insert.append(f"path: {str(path)}")
-        to_insert.append(f"gamemode: {match_gamemode(code.split(":")[2])}")
+        to_insert.append(f"gamemode: {match_gamemode(code.split(':')[2])}")
 
         text.insert(END, "\n".join(to_insert))
         text.config(state="disabled")
 
-        #Label(tk, text="Images", font="TkDefaultFont 15").pack(anchor="s")
+        # Label(tk, text="Images", font="TkDefaultFont 15").pack(anchor="s")
 
         missing = lambda: mbox.showinfo("Missing", "This screenshot is missing")
 
         ss_frame = Frame(tk)
         ss_frame.pack(side="bottom")
 
-        ss1_button = Button(ss_frame, text="Screenshot 1", command=(lambda: os.startfile(ss1)) if ss1 is not None else missing)
-        ss2_button = Button(ss_frame, text="Screenshot 2", command=(lambda: os.startfile(ss2)) if ss2 is not None else missing)
+        ss1_button = Button(
+            ss_frame,
+            text="Screenshot 1",
+            command=(lambda: os.startfile(ss1)) if ss1 is not None else missing,
+        )
+        ss2_button = Button(
+            ss_frame,
+            text="Screenshot 2",
+            command=(lambda: os.startfile(ss2)) if ss2 is not None else missing,
+        )
         ss1_button.pack(side="left", pady=20)
         ss2_button.pack(side="left", padx=30, pady=20)
-        open_button = Button(ss_frame, text="Open Location", command=lambda: os.startfile(path))
+        open_button = Button(
+            ss_frame, text="Open Location", command=lambda: os.startfile(path)
+        )
         open_button.pack(side="left", pady=20)
 
     def restore(listbox: Listbox):
-
         get = _generic_indice_checks(listbox)
         if not get:
             return
-        
+
         name, indice = get
 
         path = table[name]
@@ -343,31 +356,35 @@ def manage_saves_widget():
             code = file.read()
 
         if code in data.restore:
-            ans = mbox.askyesno("Are you sure?", 
-                            "Remove target save from restore detection")
-            
+            ans = mbox.askyesno(
+                "Are you sure?", "Remove target save from restore detection"
+            )
+
             if not ans:
                 return
-            
+
             del data.restore[code]
             listbox_edit(listbox, indice, new=name.removesuffix(RESTORE_STRING))
 
             mbox.showinfo("Success", "Removed restore detection")
             return
 
-        ans = mbox.askyesno("Are you sure?", 
-                            "If i detect a save which might be a restore of another one"
-                            "\ni will merge the past save with the new one")
-        
+        ans = mbox.askyesno(
+            "Are you sure?",
+            "If i detect a save which might be a restore of another one"
+            "\ni will merge the past save with the new one",
+        )
+
         if not ans:
             return
-        
+
         try:
             with (path / "code.txt").open("r") as file:
                 code = file.read()
         except Exception as e:
-            mbox.showerror("Error", f"Cannot find or read code file of {str(path)}:"
-                           f"\n{str(e)}")
+            mbox.showerror(
+                "Error", f"Cannot find or read code file of {str(path)}:\n{str(e)}"
+            )
             return
 
         data.restore[code] = str(table[name])
@@ -384,7 +401,7 @@ def manage_saves_widget():
         if not get:
             listbox_insert(listbox, table_seps)
             return
-        
+
         new_table = []
 
         for name in table.keys():
@@ -400,16 +417,18 @@ def manage_saves_widget():
         get = _generic_indice_checks(listbox)
         if not get:
             return
-        
+
         name, indice = get
 
-        ans = mbox.askyesno("Confirmation", 
-                            "This will archive this save in the Ended Runs directory"
-                            "The history of the save will not be deleted")
-        
+        ans = mbox.askyesno(
+            "Confirmation",
+            "This will archive this save in the Ended Runs directory"
+            "The history of the save will not be deleted",
+        )
+
         if not ans:
             return
-        
+
         _path = Path(__file__).parent / "Ended Runs"
 
         save_path = table[name]
@@ -438,19 +457,21 @@ def manage_saves_widget():
             score = int((path / "code.txt").read_text().split(":")[5])
             total_score += score
 
-        to_insert = [f"Total saved scores: {len(table) + len(ended_runs_table)}",
-                     f"Total saves: {len(table)}"
-                    ]
+        to_insert = [
+            f"Total saved scores: {len(table) + len(ended_runs_table)}",
+            f"Total saves: {len(table)}",
+        ]
 
         for k, v in statistics_table.items():
             to_insert.append(f"{k} saves: {v}")
-        
+
         to_insert.append(f"Ended runs: {len(ended_runs_table)}")
-        to_insert.append(f"Total hours spent waiting to save: {(len(table) + len(ended_runs_table)) * 5 / 60:.2f}h")
+        to_insert.append(
+            f"Total hours spent waiting to save: {(len(table) + len(ended_runs_table)) * 5 / 60:.2f}h"
+        )
         to_insert.append(f"Total amount of score saved: {total_score:,}")
 
         text.insert(END, "\n".join(to_insert))
-
 
     wrapper = Frame(TOP)
     wrapper.pack(side="top", anchor="w")
@@ -481,12 +502,14 @@ def manage_saves_widget():
     search = Entry(search_frame, width=70, font="TkDefaultFont 15")
     search.pack(anchor="center", side="left")
 
-    search_btn = Button(search_frame, text="Search", command=lambda: search_fn(MAIN, search))
+    search_btn = Button(
+        search_frame, text="Search", command=lambda: search_fn(MAIN, search)
+    )
     search_btn.pack(side="right")
 
     MAIN = Listbox(TOP, yscrollcommand=scroll.set)
     MAIN.pack(expand=True, fill=BOTH)
-    
+
     scroll.config(command=MAIN.yview)
 
     # now the sauce
@@ -503,7 +526,7 @@ def manage_saves_widget():
     SEP_LEN = 25
     SEP_CHAR = "-"
     SEP = SEP_CHAR * SEP_LEN
-    RESTORE_STRING = " - Restoring" 
+    RESTORE_STRING = " - Restoring"
     ENDED_RUNS = "Ended Runs"
 
     for name in gamemode + [ENDED_RUNS]:
@@ -512,16 +535,16 @@ def manage_saves_widget():
         temp = {}
 
         for d in (d for d in dir.iterdir() if d.is_dir()):
-
             code = None
 
             try:
                 code = (d / "code.txt").read_text()
             except Exception as e:
                 if name != ENDED_RUNS:
-                    mbox.showerror("Cannot access code", f"Cant get code for {str(d)}"
-                                f"\n{str(e)}")               
-                
+                    mbox.showerror(
+                        "Cannot access code", f"Cant get code for {str(d)}\n{str(e)}"
+                    )
+
             if code in data.restore:
                 i_name = d.name + RESTORE_STRING
             else:
@@ -532,18 +555,20 @@ def manage_saves_widget():
 
         if name == ENDED_RUNS:
             ended_runs_table = {**temp}
-            continue # (break)
+            continue  # (break)
 
         table.update(temp)
 
         statistics_table[name] = len(temp)
-        table_seps.extend([SEP, name, SEP, *temp]) 
+        table_seps.extend([SEP, name, SEP, *temp])
 
         if not temp:
-            table_seps.append(f"No Saves for {name}")   
-            table_seps.append("") # to make a space we have to do this because newlines dont work  
+            table_seps.append(f"No Saves for {name}")
+            table_seps.append(
+                ""
+            )  # to make a space we have to do this because newlines dont work
 
-    listbox_insert(MAIN, table_seps)  
+    listbox_insert(MAIN, table_seps)
 
     TOP.bind("<Return>", lambda event: search_fn(MAIN, search))
     TOP.mainloop()
@@ -561,13 +586,12 @@ menubar.add_command(label="Save Settings", command=lambda: save_button_press(dat
 
 menubar.add_command(
     label="Open Docs",
-    command=lambda: webbrowser.open("https://github.com/GDOlivercoding/ArrasManager", new=2)
+    command=lambda: webbrowser.open(
+        "https://github.com/GDOlivercoding/ArrasManager", new=2
+    ),
 )
 
-menubar.add_command(
-    label="Manage Saves",
-    command=manage_saves_widget
-)
+menubar.add_command(label="Manage Saves", command=manage_saves_widget)
 
 tab_nb = ttk.Notebook(tab1)
 confirm_tab = ttk.Frame(tab_nb)
@@ -746,6 +770,7 @@ def view_widget(context: str, title: str):
 
     scroll.config(command=main_text.yview)
 
+
 # tab 4: view local txts
 tab4_header = Label(tab3, text="View Local Files", font=("great vibes", 40))
 tab4_header.pack(anchor="center")
@@ -818,9 +843,9 @@ open_saves = lambda: startfile(Path(__file__).parent)
 open_saves_button = Button(tab3, text="Open", command=open_saves)
 open_saves_button.pack(anchor="w", padx=(10, 0), pady=(5, 0))
 
+
 # tab 5: Unclaimed
 def copy_command():
-
     selection = listbox.curselection()
     if not selection:
         mbox.showerror(title="ERROR", message="No code selected")
@@ -885,9 +910,8 @@ def Save(
     data: Settings,
     var_confirmation: BooleanVar,
     var_dirname: BooleanVar,
-    pic_scale: Scale,   
+    pic_scale: Scale,
 ) -> Never:
-
     Value.close_clock = datetime.now()
 
     # get values

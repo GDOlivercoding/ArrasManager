@@ -3,7 +3,6 @@ from init import (
     mbox,
     Path,
     dump,
-
     file_logdata,
     file_settings,
     dir_arras,
@@ -32,7 +31,6 @@ def full():
 
     dir_saves.mkdir()
 
-    
     for item in gamemode + ["Ended Runs"]:
         (dir_saves / item).mkdir()
 
