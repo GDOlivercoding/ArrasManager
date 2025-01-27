@@ -18,7 +18,7 @@ from init import (
 )
 
 from os import startfile as os_startfile
-from datetime import datetime, date
+from datetime import UTC, datetime, date
 from typing import ClassVar, Never
 from pathlib import Path
 import traceback as tb
@@ -38,20 +38,22 @@ if __name__ != "__main__":
 # sample code
 # (6f0cb12f:#eo:e5forge:Arbitrator-Astronomic:0/2/6/10/10/10/10/12/0/0:7148698:20683:71:13:4:5017:62:1710762682:JDo5u44GPYop3lwZ)
 
+# region Code class
 
-class CodeData:
+class Code:
     """contains non persistent data"""
 
     # guard
     instantiated: ClassVar[bool] = False
 
     def __init__(self, code: str, /) -> None:
-        CodeData.instantiated = True
+        Code.instantiated = True
         self.code = code
 
         self.extract_code(self.code.split(":"))
 
     def extract_code(self, parts: list[str]) -> None:
+        self.parts = parts
         self.server = parts[1]
         self.gamemode_tag = parts[2]
         self.cls = parts[3]
@@ -68,56 +70,78 @@ class CodeData:
         except ValueError as e:
             ExceptionHandler(str(e))
 
-        self.gamemode = self.match_gamemode()
-        self.region = self.match_region()
+        self.gamemode = self.match_gamemode(self.gamemode_tag)
+        self.region = self.match_region(self.server)
         self.dirname = self.construct_dirname()
 
         self.restore = self.restore_check()
 
-    def match_gamemode(self) -> GamemodeType:
+    @staticmethod
+    def match_gamemode(gamemode: str) -> GamemodeType:
         """return the gamemode based on its name"""
 
         gamemode = "Normal"
 
         for name, mode in {"olds": "Olddreads", "forge": "Newdreads"}.items():
-            if name in self.gamemode_tag:
+            if name in gamemode:
                 gamemode = mode
 
         for tag, mode in {"g": "Grownth", "a": "Arms Race"}.items():
-            if self.gamemode_tag.startswith(tag):
+            if gamemode.startswith(tag):
                 gamemode = mode
 
         return gamemode  # type: ignore
 
-    def match_region(self) -> RegionType:
+    @staticmethod
+    def match_region(server: str) -> RegionType:
         region = None
 
+        region_char = server[1]
+
         for region_tag, region_name in regions.items():
-            if self.server[1] == region_tag:
+            if region_char == region_tag:
                 region = region_name
                 break
 
         if region is None:
             ExceptionHandler(
-                f"The region has not been found, this is an internal error, server: {self.server}"
+                f"The region has not been found, this is an internal error, server: {server}"
             )
 
-            exit()  # this code is unreachable but its for my type checker
+        return region  # type: ignore   
 
-        return region  # type: ignore
+    def construct_dirname(
+            self, 
+            *, 
+            gamemode: str | None = None,
+            score: str |  None = None,
+            tankclass: str | None = None,
+            month: int | None = None,
+            day: int | None = None
+        ) -> Path:
+        """
+        Returns a `pathlib.Path` pointing to a (yet) non existing directory
+        from the current month and day, the code's score and tank (class)
 
-    def construct_dirname(self) -> Path:
-        cur_date = str(datetime.now()).split(" ")[0].split("-")
-        del cur_date[0]
-        month, day = cur_date
+        specify any of the 5 optionally keyword parameters to override the instance's default
+        """
+        cur_date = datetime.now(UTC)
+
+        if month is None:
+            month = cur_date.month
+        if day is None:
+            day = cur_date.day
 
         formatted = f"{month}.{day}."
-        self.datetime = formatted
+
+        gamemode = gamemode or self.gamemode
+        score = score or self.score
+        cls = tankclass or self.cls
 
         path = (
             Path(__file__).parent
-            / self.gamemode
-            / Path(f"{formatted} {self.score} {self.cls}")
+            / gamemode
+            / " ".join([formatted, score, cls])
         )
 
         return path
@@ -126,8 +150,6 @@ class CodeData:
         # make sure to write a lot of comments here
         # figure out of self.code is a restore of
         # one of codes in data.restore
-
-        return ""
 
         for code in data.restore:
             parts = code.split(":")
@@ -145,11 +167,11 @@ class CodeData:
             # is higher on the restored code it cant be a restore
 
             if (
-                runtime > self.runtime
-                or score > self.raw_score
-                or kills > self.kills
-                or assists > self.assists
-                or boss_kills > self.boss_kills
+                runtime < self.runtime
+                or score < self.raw_score
+                or kills < self.kills
+                or assists < self.assists
+                or boss_kills < self.boss_kills
             ):
                 continue
 
@@ -157,15 +179,16 @@ class CodeData:
             if "olds" in gamemode_tag:
                 if "olds" not in self.gamemode_tag:
                     continue
-                else:
-                    ...  # hard
 
+                return data.restore[code]
+               
         return ""
 
+# region FileIO class
 
 class FileIO:
     def __init__(self) -> None:
-        if not CodeData.instantiated:
+        if not Code.instantiated:
             raise ValueError("CodeData not instantiated")
         elif not Settings.__instances__:
             raise ValueError("Settings not instantiated")
@@ -179,7 +202,7 @@ class FileIO:
 
         self.filenames = self.add_ss()
 
-        WriteUnclaimed(data, ctx.code)
+        write_unclaimed(data, ctx.code)
 
     def restore_checks(self):
         if not ctx.restore:
@@ -240,7 +263,7 @@ class ExceptionHandler:
             title="ERROR", message=text if text is not None else self.message
         )
 
-    def write_exception(self) -> None:
+    def write_exception(self) -> Never:
         if not file_logdata.exists():
             with (base_dir / "Desktop" / f"{date.today()} ArrasErr.log").open(
                 "w", encoding=ENCODING
@@ -364,20 +387,19 @@ runtime in minutes: {ctx.runtime // 60}min
         return BIG_STRING
 
 
-class WriteUnclaimed:
-    """helper to write down the code for the unclaimed codes list for convenience
+def write_unclaimed(contents: Settings, code: str, /) -> None:
+    """
+    helper to write down the code for the unclaimed codes list for convenience
     called from the FileIO class
     """
+    if code in contents.unclaimed.keys():
+        mbox.showwarning(
+            title="WARNING", message="This code has already been registered!"
+        )
+    contents.unclaimed[code] = datetime.isoformat(datetime.now())  # type: ignore "unclaimed" is a dictionary
 
-    def __init__(self, contents: Settings, code: str, /) -> None:
-        if code in contents.unclaimed.keys():
-            mbox.showwarning(
-                title="WARNING", message="This code has already been registered!"
-            )
-        contents.unclaimed[code] = datetime.isoformat(datetime.now())  # type: ignore "unclaimed" is a dictionary
-
-        with file_settings.open("w", encoding=ENCODING) as file:
-            dump(obj=contents.get_dict(), fp=file)
+    with file_settings.open("w", encoding=ENCODING) as file:
+        dump(obj=contents.get_dict(), fp=file)
 
 
 # ---------------------------------------------------------------------------------
@@ -390,7 +412,7 @@ if not file_settings.exists():
     try:
         raise FileNotFoundError(f"Path (File) '{file_settings}' doesn't exist")
     except FileNotFoundError:
-        ...
+        pass
     # this is to make sure that tb.format_exc() works as expected
 
     ExceptionHandler(
@@ -408,7 +430,7 @@ if data.confirmation:
 
 code = get_code()
 
-ctx = CodeData(code)
+ctx = Code(code)
 
 try:
     var = FileIO()

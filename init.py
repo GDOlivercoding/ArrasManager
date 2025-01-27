@@ -58,7 +58,7 @@ JSONSerializable = None | bool | str | float | int | tuple | list | dict
 # know? that this should cary the values of the file yup
 ContentsType = object
 
-# region tag: region name
+# \region tag: region name
 regions: dict[str, str] = {
     "e": "Europe",
     "w": "US West",
@@ -128,12 +128,22 @@ class partial[T, **P]:
         self.kwargs: dict[str, Any] = kwargs
 
     def __call__(self: Self, *args: P.args, **kwargs: P.kwargs) -> T:
-        return self.func(*self.args, *args, **self.kwargs, **kwargs)
+        return self.func(*self.args, *args, **self.kwargs, **kwargs) # type: ignore
 
 
 # this class represents the settings.json file
 # commonly referenced as `data` in files where they
 # want to use the settings
+
+
+# region Settings class
+
+
+
+
+
+
+
 
 
 @dataclass

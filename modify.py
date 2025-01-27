@@ -219,7 +219,7 @@ def manage_saves_widget():
     TOP.geometry(geometry)
     TOP.title("Manage saves - modify.py")
 
-    def _generic_indice_checks(listbox):
+    def _generic_indice_checks(listbox) -> tuple[str, int] | None:
         indice = listbox.curselection()
 
         if not indice:
