@@ -1,6 +1,7 @@
 from typing import (
     ClassVar,
     Callable,
+    Never,
     Protocol,
     Self,
     Any,
@@ -55,8 +56,8 @@ JSONSerializable = None | bool | str | float | int | tuple | list | dict
 
 # the values of the settings.json file
 # this is just to visually uhhhh
-# know? that this should cary the values of the file yup
-ContentsType = object
+# that this should cary the values of the file
+ContentsType = Any
 
 # \region tag: region name
 regions: dict[str, str] = {
@@ -128,7 +129,7 @@ class partial[T, **P]:
         self.kwargs: dict[str, Any] = kwargs
 
     def __call__(self: Self, *args: P.args, **kwargs: P.kwargs) -> T:
-        return self.func(*self.args, *args, **self.kwargs, **kwargs) # type: ignore
+        return self.func(*self.args, *args, **self.kwargs, **kwargs)  # type: ignore
 
 
 # this class represents the settings.json file
@@ -137,13 +138,6 @@ class partial[T, **P]:
 
 
 # region Settings class
-
-
-
-
-
-
-
 
 
 @dataclass
@@ -233,7 +227,7 @@ def format_score(raw_i: int, /) -> str:
 
 
 def deformat_score(score: str) -> int:
-    def dummy():
+    def dummy() -> Never:
         raise ValueError("Invalid score: %s" % score)
 
     try:
@@ -260,8 +254,6 @@ def deformat_score(score: str) -> int:
         elif "." not in score:
             return int(score.removesuffix("m")) * 1_000_000
 
-        dummy()
-
     elif score.endswith("b"):
         if score[1] != ".":
             dummy()
@@ -271,7 +263,7 @@ def deformat_score(score: str) -> int:
         del l_score[1]
         return int("".join(l_score)) * 100_000_000
 
-    raise ValueError("Invalid score: %s" % score)
+    dummy()
 
 
 # get a code from the user
@@ -328,3 +320,74 @@ if __name__ == "__main__":
         title="Not for use",
         message="This is a system file, check the console if you're looking for debug info\notherwise hit 'ok' to exit",
     )
+
+def parse_server_tag(server_tag: str) -> str:
+    """
+    parse a server tag (ex.: w33olds5forge or m4a) into humanly readable text
+    (ex.: old dreadnoughts forge or maze 4tdm arms race)
+    """
+    s = ""
+
+    # olds tag: w33olds5forge
+    if "olds" in server_tag:
+        s += "old dreadnoughts "
+        
+        # w33olds9labyrinth
+        if "labyrinth" in server_tag:
+            return s + "labyrinth"
+        
+        # w33olds5forge
+        if "forge" in server_tag:
+            return s + "forge"
+        
+        # w33oldscdreadnoughtso3
+        if "dreadnoughts" in server_tag:
+            s += "main map "
+            s += parse_server_tag(server_tag.partition("dreadnoughts")[2])
+            return s
+    
+    # e5forge XXX check if you can save in labyrinth
+    if "e5forge" == server_tag:
+        return "new dreadnoughts forge"
+    
+    if "nexus" in server_tag:
+        return "nexus"
+    
+    # g indicates grownth in the tag
+    if "g" in server_tag:
+        s += "grownth "
+
+    # o indicates open
+    if "o" in server_tag:
+        s += "open "
+        is_open = True
+    else:
+        is_open = False
+    
+    # a2 | a4m
+    if "a" in server_tag:
+        s += "arms race "
+
+    is_tdm = False
+
+    # if theres an integer in the tag, it makes it a tdm gamemode
+    for char in server_tag:
+        try:
+            i = int(char)
+        except ValueError:
+            continue
+
+        s += f"{i}tdm "
+        is_tdm = True
+        break
+
+    if is_open and not is_tdm:
+        raise ValueError(f"Server tag flagged as open but isn't tdm, tag={server_tag}")
+
+    if "m" in server_tag:
+        s += "maze"
+
+    if not s:
+        raise ValueError(f"Uparsable tag, tag={server_tag}")
+    
+    return s.strip()

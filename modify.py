@@ -2,6 +2,7 @@ import os
 from typing import Never
 from init import (
     Settings,
+    parse_server_tag,
     partial,
     create_dict,
     dump,
@@ -245,6 +246,7 @@ def manage_saves_widget():
             for name, mode in {"olds": "Olddreads", "forge": "Newdreads"}.items():
                 if name in gamemode_tag:
                     gamemode = mode
+                    break
 
             for tag, mode in {"g": "Grownth", "a": "Arms Race"}.items():
                 if gamemode_tag.startswith(tag):
@@ -315,6 +317,7 @@ def manage_saves_widget():
         to_insert.append(f"code: {code}")
         to_insert.append(f"path: {str(path)}")
         to_insert.append(f"gamemode: {match_gamemode(code.split(':')[2])}")
+        to_insert.append(f"mode: {parse_server_tag(code.split(":")[2])}")
 
         text.insert(END, "\n".join(to_insert))
         text.config(state="disabled")
@@ -365,6 +368,7 @@ def manage_saves_widget():
 
             del data.restore[code]
             listbox_edit(listbox, indice, new=name.removesuffix(RESTORE_STRING))
+            table[name.removesuffix(RESTORE_STRING)] = table.pop(name)
 
             mbox.showinfo("Success", "Removed restore detection")
             return
@@ -550,11 +554,11 @@ def manage_saves_widget():
             else:
                 i_name = d.name
 
-            assert name not in table, f"FAILSAFE NAME STRING IN TABLE: {name}"
+            assert name not in table, f"NAME STRING IN TABLE: {name}"
             temp[i_name] = d
 
         if name == ENDED_RUNS:
-            ended_runs_table = {**temp}
+            ended_runs_table = {**temp} # mutable issues
             continue  # (break)
 
         table.update(temp)
@@ -564,11 +568,22 @@ def manage_saves_widget():
 
         if not temp:
             table_seps.append(f"No Saves for {name}")
-            table_seps.append(
-                ""
-            )  # to make a space we have to do this because newlines dont work
+            table_seps.append("") 
+            # to make a space we have to do this because newlines dont work
 
     listbox_insert(MAIN, table_seps)
+
+    for code in data.restore:
+        if code not in table:
+            del data.restore[code] # it no longer exists (might've been moved manually)
+
+    #s = set()
+    #
+    #for path in table.values():
+    #    print(v := (parse_server_tag((path / "code.txt").read_text().split(":")[2])))
+    #    s.add(v)
+    #
+    #print(s)
 
     TOP.bind("<Return>", lambda event: search_fn(MAIN, search))
     TOP.mainloop()

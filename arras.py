@@ -1,7 +1,6 @@
 from init import (
     mbox,
     dump,
-    GamemodeType,
     RegionType,
     Settings,
     format_score,
@@ -11,6 +10,7 @@ from init import (
     SINGLE,
     BOTH,
     NO_EXCEPTION,
+    parse_server_tag,
     regions,
     file_settings,
     file_logdata,
@@ -19,7 +19,7 @@ from init import (
 
 from os import startfile as os_startfile
 from datetime import UTC, datetime, date
-from typing import ClassVar, Never
+from typing import ClassVar, Literal, Never
 from pathlib import Path
 import traceback as tb
 from json import load
@@ -28,17 +28,22 @@ ENCODING = "utf-8"
 
 # this file is not meant to be imported, so if i accidentally do, i find the issue faster
 if __name__ != "__main__":
-    mbox.showerror(
-        title="ERROR",
-        message=f"This file is NOT meant to be imported, but rather ran directly! process name: {__name__=}",
+    import warnings
+
+    warnings.warn(
+        f"This file is NOT meant to be imported, but rather ran directly! process name: {__name__=}"
     )
 
-    raise SystemExit
+# sample code (6f0cb12f:#eo:e5forge:Arbitrator-Astronomic:0/2/6/10/10/10/10/12/0/0:7148698:20683:71:13:4:5017:62:1710762682:JDo5u44GPYop3lwZ)
 
-# sample code
-# (6f0cb12f:#eo:e5forge:Arbitrator-Astronomic:0/2/6/10/10/10/10/12/0/0:7148698:20683:71:13:4:5017:62:1710762682:JDo5u44GPYop3lwZ)
+# (6f0cb12f:  #eo:                e5forge:  Arbitrator-Astronomic:  0/2/6/10/10/10/10/12/0/0:  7148698:
+#  unknown    server URL address  gamemode  tank class              build                      score
+
+# 20683:                71:    13:      4:                   5017:               62:      1710762682:  JDo5u44GPYop3lwZ)
+# time alive in seconds kills  assists  boss kills / assits  polygons destroyed  unknown  unknown      unknown
 
 # region Code class
+
 
 class Code:
     """contains non persistent data"""
@@ -48,7 +53,7 @@ class Code:
 
     def __init__(self, code: str, /) -> None:
         Code.instantiated = True
-        self.code = code
+        self.code = code.removeprefix("`").removesuffix("`")
 
         self.extract_code(self.code.split(":"))
 
@@ -77,7 +82,9 @@ class Code:
         self.restore = self.restore_check()
 
     @staticmethod
-    def match_gamemode(gamemode: str) -> GamemodeType:
+    def match_gamemode(
+        gamemode: str,
+    ) -> Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"]:
         """return the gamemode based on its name"""
 
         gamemode = "Normal"
@@ -108,17 +115,18 @@ class Code:
                 f"The region has not been found, this is an internal error, server: {server}"
             )
 
-        return region  # type: ignore   
+        return region  # type: ignore
 
     def construct_dirname(
-            self, 
-            *, 
-            gamemode: str | None = None,
-            score: str |  None = None,
-            tankclass: str | None = None,
-            month: int | None = None,
-            day: int | None = None
-        ) -> Path:
+        self,
+        /,
+        *,
+        gamemode: str | None = None,
+        score: str | None = None,
+        tankclass: str | None = None,
+        month: int | None = None,
+        day: int | None = None,
+    ) -> Path:
         """
         Returns a `pathlib.Path` pointing to a (yet) non existing directory
         from the current month and day, the code's score and tank (class)
@@ -132,21 +140,20 @@ class Code:
         if day is None:
             day = cur_date.day
 
+        if len(str(month)) == 1:
+            month = f"0{month}"  # type: ignore
+
         formatted = f"{month}.{day}."
 
         gamemode = gamemode or self.gamemode
         score = score or self.score
         cls = tankclass or self.cls
 
-        path = (
-            Path(__file__).parent
-            / gamemode
-            / " ".join([formatted, score, cls])
-        )
+        path = Path(__file__).parent / gamemode / " ".join([formatted, score, cls])
 
         return path
 
-    def restore_check(self) -> str:
+    def restore_check(self) -> None | Path:
         # make sure to write a lot of comments here
         # figure out of self.code is a restore of
         # one of codes in data.restore
@@ -166,25 +173,71 @@ class Code:
             # if any of runtime, score, kills, assists or boss kills
             # is higher on the restored code it cant be a restore
 
+            INT32_LIMIT_BYPASS_CHECK = False
+
+            if (
+                INT32_LIMIT_BYPASS_CHECK
+                and cls == self.cls
+                and sum(int(skill) for skill in build.split("/"))
+                >= sum(int(skill) for skill in self.build.split("/"))
+            ):
+                score = float("inf")
+
             if (
                 runtime < self.runtime
-                or score < self.raw_score
+                or score < self.raw_score  # XXX when going over the
+                # 32 bit integer limit, this wont be able to tell
+                # but because its so rare, i dont care
                 or kills < self.kills
                 or assists < self.assists
                 or boss_kills < self.boss_kills
             ):
                 continue
 
-            # old dreadnoughts always have to be old dreadnoughts
-            if "olds" in gamemode_tag:
-                if "olds" not in self.gamemode_tag:
+            # anything with a self. prefix signalizes
+            # the stat of the currently-being-saved code
+            # the ones without prefix signalize
+            # the yet-to-be-restored code thats being
+            # iterated over
+
+            gamemode = self.match_gamemode(gamemode_tag)
+
+            # this is the most i can do for now
+            if (
+                self.gamemode == gamemode
+                or self.gamemode == "Newdreads"
+                and gamemode == "Normal"
+            ):
+                # if the gamemode isn't same, the code is wrong...
+                # unless you transform into a dreadnought (v2/3)
+
+                if (
+                    gamemode == "Arms Race" and self.gamemode_tag != gamemode_tag
+                    # or self.cls != cls
+                ):
+                    # explaination:
+                    # in arms race, since theres no nexus, you cant change server maps
+                    # like elsewhere
+                    # for example, once youre in maze 4tdm, you cannot change the tdm count
+                    # or if its maze
+                    # checking for class doesn't work because it might not be final
                     continue
 
-                return data.restore[code]
-               
-        return ""
+                if gamemode not in ("Olddreads", "Newdreads") and sum(
+                    int(skill) for skill in build.split("/")
+                ) > sum(int(skill) for skill in self.build.split("/")):
+                    # the continuation code cannot have less upgrades (unless its a dreadnought server)
+
+                    # (if the sum of skills in the continuation are lower, this it not the code)
+                    continue
+
+                return Path(data.restore[code])
+
+        return None
+
 
 # region FileIO class
+
 
 class FileIO:
     def __init__(self) -> None:
@@ -195,18 +248,27 @@ class FileIO:
 
         ctx.dirname.mkdir(exist_ok=True)
 
-        self.restore_checks()
-
         with (ctx.dirname / "code.txt").open("w", encoding=ENCODING) as file:
             file.write(ctx.code)
 
         self.filenames = self.add_ss()
 
+        self.resolve_restore()
+
         write_unclaimed(data, ctx.code)
 
-    def restore_checks(self):
+    def resolve_restore(self):
         if not ctx.restore:
             return
+
+        ctx.restore.rename(ctx.dirname / ctx.restore.name)
+
+        for d in (d for d in ctx.restore.iterdir() if d.is_dir()):
+            d.rename(d.parent / d.name)
+
+        for k, v in {**data.restore}.items(): # dict size change
+            if v == ctx.restore:
+                del data.restore[k]
 
     def add_ss(self) -> tuple[Path | None, Path | None]:  # not a type hinting error
         if (
@@ -356,10 +418,12 @@ class WriteDown:
         return dummy + 1
 
     def create_data(self):
+        td = date.today()
+
         BIG_STRING: str = f"""
 -----------------------------------------------------------------
 -----------------------------------------------------------------
-arras.py instance at {str(datetime.now()).split(".")[0]}, instance number {self.dummy}:
+arras.py instance at {td.day}.{td.month}, instance number {self.dummy}:
 
 Path: {ctx.dirname.stem}
 Full-path: {ctx.dirname}
@@ -367,7 +431,7 @@ picture1: {var.filenames[0]}
 picture2: {var.filenames[1]}
 
 Settings:
-> Confirmation: {data.confirmation}
+> confirmation: {data.confirmation}
 > pic_export: {data.pic_export}
 > screenshot_directory: {data.ss_dir}
 
@@ -375,6 +439,7 @@ Data:
 code: {ctx.code}
 server: {ctx.server}
 gamemode: {ctx.gamemode}
+full mode: {parse_server_tag(ctx.gamemode_tag)}
 region: {ctx.region}
 tank class: {ctx.cls}
 tank build: {ctx.build}

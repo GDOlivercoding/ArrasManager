@@ -97,7 +97,9 @@ def get_analytics(code: str) -> DataTupleType:
 
     # kills
     kills_score = i_score // (kills or 1)  # amount of score between each kill
-    kills_mins = runtime_mins / (kills or 1)  # average amount of time takes to get a kill
+    kills_mins = runtime_mins / (
+        kills or 1
+    )  # average amount of time takes to get a kill
     kills_assists = kills / (assists or 1)  # amount of kills per assist
 
     # regular information
