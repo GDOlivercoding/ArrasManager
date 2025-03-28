@@ -26,7 +26,6 @@ from json import load
 
 ENCODING = "utf-8"
 
-# this file is not meant to be imported, so if i accidentally do, i find the issue faster
 if __name__ != "__main__":
     import warnings
 
@@ -74,6 +73,9 @@ class Code:
             self.score = format_score(self.raw_score)
         except ValueError as e:
             ExceptionHandler(str(e))
+
+        self.build_parts = [int(i) for i in self.build.split("/")]
+        self.build_sum = sum(self.build_parts)
 
         self.gamemode = self.match_gamemode(self.gamemode_tag)
         self.region = self.match_region(self.server)
@@ -160,7 +162,7 @@ class Code:
 
         for code in data.restore:
             parts = code.split(":")
-            server = parts[1]
+            _server = parts[1]
             gamemode_tag = parts[2]
             cls = parts[3]
             build = parts[4]
@@ -169,6 +171,8 @@ class Code:
             kills = int(parts[7])
             assists = int(parts[8])
             boss_kills = int(parts[9])
+
+            print("\nnew code: {code}".format(code=code))
 
             # if any of runtime, score, kills, assists or boss kills
             # is higher on the restored code it cant be a restore
@@ -192,6 +196,7 @@ class Code:
                 or assists < self.assists
                 or boss_kills < self.boss_kills
             ):
+                print("One of the stats of the tank is lower than the original")
                 continue
 
             # anything with a self. prefix signalizes
@@ -231,7 +236,10 @@ class Code:
                     # (if the sum of skills in the continuation are lower, this it not the code)
                     continue
 
+                print(f"code {code} succeeded the restore check")
                 return Path(data.restore[code])
+
+            print(f"code {code} doesnt match the original's gamemode")
 
         return None
 
@@ -266,7 +274,7 @@ class FileIO:
         for d in (d for d in ctx.restore.iterdir() if d.is_dir()):
             d.rename(d.parent / d.name)
 
-        for k, v in {**data.restore}.items(): # dict size change
+        for k, v in {**data.restore}.items():  # dict size change
             if v == ctx.restore:
                 del data.restore[k]
 
@@ -507,7 +515,7 @@ try:
             os_startfile(ctx.dirname)
     except:
         ExceptionHandler(
-            "An internal error has occured when trying to show the directory location\nreport this to the owner\nnote that everything went well, there's nothing to fear",
+            "Cannot open destination directory.",
             kill=False,
         )
         WriteDown()

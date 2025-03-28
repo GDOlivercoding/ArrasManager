@@ -230,38 +230,32 @@ def deformat_score(score: str) -> int:
     def dummy() -> Never:
         raise ValueError("Invalid score: %s" % score)
 
+    def convert(times: int) -> int:
+        assert score is not None
+        try:
+            return int(float(score) * times)
+        except ValueError:
+            dummy()
+
     try:
         return int(score)
     except ValueError:
         pass
 
-    if score.endswith("K"):
-        return int(score[:3]) * 1_000
+    # case insesitive
+    score = score.lower()
+
+    if score.endswith("k"):
+        score = score.removesuffix("k")
+        return convert(1_000)
 
     elif score.endswith("m"):
-        if score[1] == ".":
-            l_score = list(score)
-            l_score.pop()
-            l_score.remove(".")
-            return int("".join(l_score)) * 10_000
-
-        elif score[2] == ".":
-            l_score = list(score)
-            l_score.pop()
-            l_score.remove(".")
-            return int("".join(l_score)) * 10_000
-
-        elif "." not in score:
-            return int(score.removesuffix("m")) * 1_000_000
+        score = score.removesuffix("m")
+        return convert(1_000_000)
 
     elif score.endswith("b"):
-        if score[1] != ".":
-            dummy()
-
-        l_score = list(score)
-        l_score.pop()
-        del l_score[1]
-        return int("".join(l_score)) * 100_000_000
+        score = score.removesuffix("b")
+        return convert(100_000_000)
 
     dummy()
 
@@ -321,6 +315,7 @@ if __name__ == "__main__":
         message="This is a system file, check the console if you're looking for debug info\notherwise hit 'ok' to exit",
     )
 
+
 def parse_server_tag(server_tag: str) -> str:
     """
     parse a server tag (ex.: w33olds5forge or m4a) into humanly readable text
@@ -331,28 +326,28 @@ def parse_server_tag(server_tag: str) -> str:
     # olds tag: w33olds5forge
     if "olds" in server_tag:
         s += "old dreadnoughts "
-        
+
         # w33olds9labyrinth
         if "labyrinth" in server_tag:
             return s + "labyrinth"
-        
+
         # w33olds5forge
         if "forge" in server_tag:
             return s + "forge"
-        
+
         # w33oldscdreadnoughtso3
         if "dreadnoughts" in server_tag:
             s += "main map "
             s += parse_server_tag(server_tag.partition("dreadnoughts")[2])
             return s
-    
+
     # e5forge XXX check if you can save in labyrinth
     if "e5forge" == server_tag:
         return "new dreadnoughts forge"
-    
+
     if "nexus" in server_tag:
         return "nexus"
-    
+
     # g indicates grownth in the tag
     if "g" in server_tag:
         s += "grownth "
@@ -363,7 +358,7 @@ def parse_server_tag(server_tag: str) -> str:
         is_open = True
     else:
         is_open = False
-    
+
     # a2 | a4m
     if "a" in server_tag:
         s += "arms race "
@@ -389,5 +384,5 @@ def parse_server_tag(server_tag: str) -> str:
 
     if not s:
         raise ValueError(f"Uparsable tag, tag={server_tag}")
-    
+
     return s.strip()

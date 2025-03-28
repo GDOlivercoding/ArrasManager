@@ -317,7 +317,7 @@ def manage_saves_widget():
         to_insert.append(f"code: {code}")
         to_insert.append(f"path: {str(path)}")
         to_insert.append(f"gamemode: {match_gamemode(code.split(':')[2])}")
-        to_insert.append(f"mode: {parse_server_tag(code.split(":")[2])}")
+        to_insert.append(f"mode: {parse_server_tag(code.split(':')[2])}")
 
         text.insert(END, "\n".join(to_insert))
         text.config(state="disabled")
@@ -558,7 +558,7 @@ def manage_saves_widget():
             temp[i_name] = d
 
         if name == ENDED_RUNS:
-            ended_runs_table = {**temp} # mutable issues
+            ended_runs_table = {**temp}  # mutable issues
             continue  # (break)
 
         table.update(temp)
@@ -568,22 +568,22 @@ def manage_saves_widget():
 
         if not temp:
             table_seps.append(f"No Saves for {name}")
-            table_seps.append("") 
+            table_seps.append("")
             # to make a space we have to do this because newlines dont work
 
     listbox_insert(MAIN, table_seps)
 
     for code in data.restore:
         if code not in table:
-            del data.restore[code] # it no longer exists (might've been moved manually)
+            del data.restore[code]  # it no longer exists (might've been moved manually)
 
-    #s = set()
+    # s = set()
     #
-    #for path in table.values():
+    # for path in table.values():
     #    print(v := (parse_server_tag((path / "code.txt").read_text().split(":")[2])))
     #    s.add(v)
     #
-    #print(s)
+    # print(s)
 
     TOP.bind("<Return>", lambda event: search_fn(MAIN, search))
     TOP.mainloop()

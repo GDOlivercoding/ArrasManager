@@ -1,4 +1,4 @@
-from tkinter import *  # type: ignore[wildcard]
+from tkinter import *  # type: ignore[wildcard] ruff: noqa F403
 from tkinter import ttk, messagebox as mbox
 
 from init import GamemodeType, RegionType, format_score, regions
