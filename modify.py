@@ -275,7 +275,7 @@ def manage_saves_widget():
         to_insert = []
 
         files = list(path.iterdir())
-        _files = {s.name: s for s in files}
+        _files: dict[str, Path] = {s.name: s for s in files}
 
         if "code.txt" in _files.keys():
             code_file = _files["code.txt"]
@@ -303,7 +303,7 @@ def manage_saves_widget():
                 break
 
         try:
-            code = code_file.read_text()
+            code = code_file.read_text().strip()
         except Exception:
             mbox.showerror(
                 "Could not get code",

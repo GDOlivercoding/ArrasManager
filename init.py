@@ -288,32 +288,6 @@ write: dict[str, ContentsType] = {
     k: v for k, v in zip(settings_keys, settings_base_values, strict=True)
 }
 
-# we give out some info if we run the file directly
-if __name__ == "__main__":
-    print(
-        f"\n{base_dir=}\n{dir_arras=}\n{file_logdata=}\n{file_settings}\n{screenshot_dir=}\n\n"
-    )
-
-    print("regions:\n")
-    for k, v in regions.items():
-        print(f"{k} = {v}")
-
-    print("\nbase keys:\n")
-    for i in settings_keys:
-        print(i)
-
-    print("\nbase values:\n")
-    for i in settings_base_values:
-        print(i)
-
-    print("\nwrite variable:\n")
-    for k, v in write.items():
-        print(f"{k} = {v}")
-
-    mbox.showinfo(
-        title="Not for use",
-        message="This is a system file, check the console if you're looking for debug info\notherwise hit 'ok' to exit",
-    )
 
 
 def parse_server_tag(server_tag: str) -> str:
@@ -377,12 +351,39 @@ def parse_server_tag(server_tag: str) -> str:
         break
 
     if is_open and not is_tdm:
-        raise ValueError(f"Server tag flagged as open but isn't tdm, tag={server_tag}")
+        raise ValueError(f"Server tag flagged as open but isn't tdm, {server_tag=}")
 
     if "m" in server_tag:
         s += "maze"
 
     if not s:
-        raise ValueError(f"Uparsable tag, tag={server_tag}")
+        raise ValueError(f"Unparsable tag, tag={server_tag}")
 
     return s.strip()
+
+# we give out some info if we run the file directly
+if __name__ == "__main__":
+    print(
+        f"\n{base_dir=}\n{dir_arras=}\n{file_logdata=}\n{file_settings}\n{screenshot_dir=}\n\n"
+    )
+
+    print("regions:\n")
+    for k, v in regions.items():
+        print(f"{k} = {v}")
+
+    print("\nbase keys:\n")
+    for i in settings_keys:
+        print(i)
+
+    print("\nbase values:\n")
+    for i in settings_base_values:
+        print(i)
+
+    print("\nwrite variable:\n")
+    for k, v in write.items():
+        print(f"{k} = {v}")
+
+    mbox.showinfo(
+        title="Not for use",
+        message="This is a system file, check the console if you're looking for debug info\notherwise hit 'ok' to exit",
+    )

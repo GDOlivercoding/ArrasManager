@@ -19,7 +19,7 @@ from init import (
 
 from os import startfile as os_startfile
 from datetime import UTC, datetime, date
-from typing import ClassVar, Literal, Never
+from typing import ClassVar, Literal, Never, overload, reveal_type
 from pathlib import Path
 import traceback as tb
 from json import load
@@ -45,7 +45,7 @@ if __name__ != "__main__":
 
 
 class Code:
-    """contains non persistent data"""
+    """Represents an Arras.io save code"""
 
     # guard
     instantiated: ClassVar[bool] = False
@@ -62,17 +62,19 @@ class Code:
         self.gamemode_tag = parts[2]
         self.cls = parts[3]
         self.build = parts[4]
-        self.runtime = int(parts[6])
-        self.kills = int(parts[7])
-        self.assists = int(parts[8])
-        self.boss_kills = int(parts[9])
 
-        # we seperate this to change the message into something else since format_score gives a ValueError
         try:
             self.raw_score = int(parts[5])
             self.score = format_score(self.raw_score)
         except ValueError as e:
             ExceptionHandler(str(e))
+
+        self.runtime = int(parts[6])
+        self.kills = int(parts[7])
+        self.assists = int(parts[8])
+        self.boss_kills = int(parts[9])
+        self.shape_kills = int(parts[10])
+        self.unknown_parts: list[str] = parts[11:]
 
         self.build_parts = [int(i) for i in self.build.split("/")]
         self.build_sum = sum(self.build_parts)
@@ -89,17 +91,17 @@ class Code:
     ) -> Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"]:
         """return the gamemode based on its name"""
 
-        gamemode = "Normal"
+        output_mode = "Normal"
 
         for name, mode in {"olds": "Olddreads", "forge": "Newdreads"}.items():
             if name in gamemode:
-                gamemode = mode
+                output_mode = mode
 
         for tag, mode in {"g": "Grownth", "a": "Arms Race"}.items():
             if gamemode.startswith(tag):
-                gamemode = mode
+                output_mode = mode
 
-        return gamemode  # type: ignore
+        return output_mode  # type: ignore
 
     @staticmethod
     def match_region(server: str) -> RegionType:
@@ -242,6 +244,77 @@ class Code:
             print(f"code {code} doesnt match the original's gamemode")
 
         return None
+
+    @overload
+    def restore_command(
+        self,
+        *,
+        player_name: str,
+        server_tag: str,
+        discord_id: int,
+    ) -> str: ...
+
+    @overload
+    def restore_command(
+        self,
+        *,
+        player_id: int,
+        server_tag: str,
+        discord_id: int,
+    ) -> str: ...
+
+    def restore_command(
+        self,
+        *,
+        player_name: str | None = None,
+        player_id: int | None = None,
+        server_tag: str,
+        discord_id: int,
+    ) -> str:
+        """
+        Return a string that can be used by the discord Arras.io bot to restore this code
+
+        player_name: str
+        the player's name in game to restore
+        this string has to be in the players name
+        exclusive with 'player_id'
+
+        player_id: int
+        the player's in game id
+        this targets the exact player with the id
+        exclusive with 'player_name'
+
+        server_tag: str
+        the server's tag you're restoring in
+        this is found in the URL address
+        arras.io/#eb1234 the tag would be 'eb' or '#eb'
+        trailing hashtag may be omitted
+
+        discord_id: int
+        the discord id of the account that has this save stored
+        the Arras.io bot needs to mention this account in the restore command
+        this function will convert the id to a mention
+        """
+
+        if player_id is None and player_name is None:
+            raise ValueError("Either of player_id or player_name have to be provided.")
+
+        if player_id is not None and player_name is not None:
+            raise ValueError("Both player_id and player_name cannot be provided.")
+
+        if not server_tag.startswith("#"):
+            server_tag = "#" + server_tag
+
+        if player_id is None:
+            return (
+                f"$ {server_tag} l n~{player_name} restore {self.code} <@{discord_id}>"
+            )
+
+        # XXX Pylance doesn't have more than 2 actively working braincells
+        reveal_type(player_name)
+        # type of `player_name` can't be `None` otherwise an error would've been risen earlier
+
+        return f"$ {server_tag} l #{player_id} restore {self.code} <@{discord_id}>"
 
 
 # region FileIO class
@@ -469,7 +542,7 @@ def write_unclaimed(contents: Settings, code: str, /) -> None:
         mbox.showwarning(
             title="WARNING", message="This code has already been registered!"
         )
-    contents.unclaimed[code] = datetime.isoformat(datetime.now())  # type: ignore "unclaimed" is a dictionary
+    contents.unclaimed[code] = datetime.isoformat(datetime.now())  
 
     with file_settings.open("w", encoding=ENCODING) as file:
         dump(obj=contents.get_dict(), fp=file)
