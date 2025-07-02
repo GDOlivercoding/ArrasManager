@@ -1,5 +1,4 @@
 from init import (
-    partial,
     mbox,
     Path,
     dump,
@@ -10,6 +9,7 @@ from init import (
     gamemode,
 )
 
+from functools import partial
 from shutil import move
 import tkinter as tk
 import ttkbootstrap as ttk

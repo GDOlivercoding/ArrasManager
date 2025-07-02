@@ -3,14 +3,12 @@ from typing import Never
 from init import (
     Settings,
     parse_server_tag,
-    partial,
     create_dict,
     dump,
     file_logdata,
     file_settings,
     screenshot_dir,
     base_dir,
-    was_deleted,
     gamemode,
 )
 
@@ -42,11 +40,12 @@ from tkinter import (
 
 from tkinter import ttk
 from datetime import datetime
-from json import load
+import json
 import webbrowser
 from pathlib import Path
 from os import startfile
-
+from time import perf_counter
+from functools import partial
 from pyautogui import size
 
 width, height = size()
@@ -82,7 +81,7 @@ window.resizable(False, False)
 
 # read settings
 with file_settings.open("r") as file:
-    data = create_dict(load(fp=file))
+    data = create_dict(json.load(fp=file))
 
 # I HATE MUTABLE HELL
 START_DATA = create_dict(data.get_dict())
@@ -238,7 +237,7 @@ def manage_saves_widget():
         return (name, indice)
 
     def _view(listbox: Listbox):
-        def match_gamemode(gamemode_tag) -> str:
+        def match_gamemode(gamemode_tag: str) -> str:
             """return the gamemode based on its name"""
 
             gamemode = "Normal"
@@ -346,59 +345,6 @@ def manage_saves_widget():
         )
         open_button.pack(side="left", pady=20)
 
-    def restore(listbox: Listbox):
-        get = _generic_indice_checks(listbox)
-        if not get:
-            return
-
-        name, indice = get
-
-        path = table[name]
-
-        with (path / "code.txt").open("r") as file:
-            code = file.read()
-
-        if code in data.restore:
-            ans = mbox.askyesno(
-                "Are you sure?", "Remove target save from restore detection"
-            )
-
-            if not ans:
-                return
-
-            del data.restore[code]
-            listbox_edit(listbox, indice, new=name.removesuffix(RESTORE_STRING))
-            table[name.removesuffix(RESTORE_STRING)] = table.pop(name)
-
-            mbox.showinfo("Success", "Removed restore detection")
-            return
-
-        ans = mbox.askyesno(
-            "Are you sure?",
-            "If i detect a save which might be a restore of another one"
-            "\ni will merge the past save with the new one",
-        )
-
-        if not ans:
-            return
-
-        try:
-            with (path / "code.txt").open("r") as file:
-                code = file.read()
-        except Exception as e:
-            mbox.showerror(
-                "Error", f"Cannot find or read code file of {str(path)}:\n{str(e)}"
-            )
-            return
-
-        data.restore[code] = str(table[name])
-
-        listbox_edit(listbox, indice, new=name + RESTORE_STRING)
-
-        table[name + RESTORE_STRING] = table.pop(name)
-
-        mbox.showinfo("Success", "Added restore detection")
-
     def search_fn(listbox: Listbox, entry: Entry):
         get = entry.get().lower()
 
@@ -486,9 +432,6 @@ def manage_saves_widget():
     viewer = wrapper_button(text="View", command=lambda: _view(MAIN))
     viewer.pack(**packer)
 
-    retore = wrapper_button(text="Restore", command=lambda: restore(MAIN))
-    retore.pack(**packer | {"padx": (50, 0)})
-
     deleter = wrapper_button(text="Discard Save", command=lambda: end_run(MAIN))
     deleter.pack(**packer)
 
@@ -503,11 +446,11 @@ def manage_saves_widget():
     search_frame = Frame(TOP)
     search_frame.pack()
 
-    search = Entry(search_frame, width=70, font="TkDefaultFont 15")
-    search.pack(anchor="center", side="left")
+    search_entry = Entry(search_frame, width=70, font="TkDefaultFont 15")
+    search_entry.pack(anchor="center", side="left")
 
     search_btn = Button(
-        search_frame, text="Search", command=lambda: search_fn(MAIN, search)
+        search_frame, text="Search", command=lambda: search_fn(MAIN, search_entry)
     )
     search_btn.pack(side="right")
 
@@ -530,32 +473,22 @@ def manage_saves_widget():
     SEP_LEN = 25
     SEP_CHAR = "-"
     SEP = SEP_CHAR * SEP_LEN
-    RESTORE_STRING = " - Restoring"
     ENDED_RUNS = "Ended Runs"
 
+    start = perf_counter()
+    print("Started indexing saves...")
+
     for name in gamemode + [ENDED_RUNS]:
+        dir_start = perf_counter()
+        print(f"Indexing {name}...")
+
         dir = join / name
 
         temp = {}
 
         for d in (d for d in dir.iterdir() if d.is_dir()):
-            code = None
-
-            try:
-                code = (d / "code.txt").read_text()
-            except Exception as e:
-                if name != ENDED_RUNS:
-                    mbox.showerror(
-                        "Cannot access code", f"Cant get code for {str(d)}\n{str(e)}"
-                    )
-
-            if code in data.restore:
-                i_name = d.name + RESTORE_STRING
-            else:
-                i_name = d.name
-
             assert name not in table, f"NAME STRING IN TABLE: {name}"
-            temp[i_name] = d
+            temp[d.name] = d
 
         if name == ENDED_RUNS:
             ended_runs_table = {**temp}  # mutable issues
@@ -571,21 +504,20 @@ def manage_saves_widget():
             table_seps.append("")
             # to make a space we have to do this because newlines dont work
 
+        dir_end = perf_counter()
+        print(f"Ended indexing {name} took {dir_end-dir_start:.2f}s")
+
+    end = perf_counter()
+    print(f"Ended indexing, took {end-start:.2f}s")
+
     listbox_insert(MAIN, table_seps)
 
-    for code in data.restore:
-        if code not in table:
-            del data.restore[code]  # it no longer exists (might've been moved manually)
+    def erase_and_search():
+        search_entry.delete(0, END)
+        search_fn(MAIN, search_entry)
 
-    # s = set()
-    #
-    # for path in table.values():
-    #    print(v := (parse_server_tag((path / "code.txt").read_text().split(":")[2])))
-    #    s.add(v)
-    #
-    # print(s)
-
-    TOP.bind("<Return>", lambda event: search_fn(MAIN, search))
+    TOP.bind("<Return>", lambda _event: search_fn(MAIN, search_entry))
+    TOP.bind("<Escape>", lambda _event: erase_and_search())
     TOP.mainloop()
 
 
@@ -921,12 +853,12 @@ button.pack(pady=(50, 0), anchor="center")
 
 
 # save changes upon exiting
-def Save(
+def save(
     data: Settings,
     var_confirmation: BooleanVar,
     var_dirname: BooleanVar,
     pic_scale: Scale,
-) -> Never:
+):
     Value.close_clock = datetime.now()
 
     # get values
@@ -992,12 +924,13 @@ total time spent in modify.py: {Value.close_clock - Value.open_clock}
     contents.append(SET_TO)
     with file_logdata.open("w", encoding="utf-8") as file:
         file.writelines(contents)
+        
     exit()
 
 
 window.protocol(
     "WM_DELETE_WINDOW",  # WINDOW MANAGER DELETE WINDOW
-    lambda data=data: Save(
+    lambda data=data: save(
         data,
         var_confirmation,
         var_dirname,

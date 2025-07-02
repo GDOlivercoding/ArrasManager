@@ -1,4 +1,5 @@
 */
 getter.py
-test.py
 pager.py
+*.json
+*test*

@@ -1,9 +1,5 @@
 from typing import (
-    ClassVar,
-    Callable,
-    Never,
     Protocol,
-    Self,
     Any,
     Literal,
     Final,
@@ -11,12 +7,6 @@ from typing import (
 from json import dump as _dump
 from pathlib import Path
 from dataclasses import dataclass, field
-import tkinter.messagebox as mbox
-
-# any libraries imported as:
-# import library (as alias)
-# should be imported from here
-# as it saves little performance when we already import init
 
 # here are the paths for certain directories and files
 
@@ -25,17 +15,6 @@ dir_arras: Path = base_dir / "AppData" / "Local" / "Arras"
 file_logdata: Path = dir_arras / "logdata.txt"
 file_settings: Path = dir_arras / "settings.json"
 screenshot_dir: Path = base_dir / "Pictures" / "Screenshots"
-
-# i will delete this
-# in modify.py, monitores, if the user has deleted their log file
-# if they have, this flag is set to True, and the program wont
-# log for that instance
-was_deleted: bool = False
-
-# for more readable Settings.pic_export comparisons
-NONE: Final = 0
-SINGLE: Final = 1
-BOTH: Final = 2
 
 # a code split by a colon should equal or exceed this number
 # very easy way to tell if something is a real code
@@ -54,24 +33,20 @@ class SupportsWrite(Protocol):
 # to be json serialized
 JSONSerializable = None | bool | str | float | int | tuple | list | dict
 
-# the values of the settings.json file
-# this is just to visually uhhhh
-# that this should cary the values of the file
-ContentsType = Any
-
 # \region tag: region name
 regions: dict[str, str] = {
     "e": "Europe",
     "w": "US West",
     "c": "US Central",
+    "a": "Asia", # How did i just completely miss Asia...
     "o": "Oceania",
 }
 
 # more gamemode region type things, varies...
-gamemode: list[str] = ["Normal", "Olddreads", "Newdreads", "Grownth", "Arms race"]
+gamemode: list[str] = ["Normal", "Olddreads", "Newdreads", "Growth", "Arms race"]
 RegionType = Literal["Europe", "US West", "US Central", "Oceania"]
 Region = list(regions.values())
-GamemodeType = Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"]
+GamemodeType = Literal["Normal", "Olddreads", "Newdreads", "Growth", "Arms Race"]
 
 # a list of strings of names of the settings file
 settings_keys: list[str] = [
@@ -81,17 +56,12 @@ settings_keys: list[str] = [
     "confirmation",
     "pic_export",
     "ss_dir",
-    "automation",
-    "force_automation",
-    "ask_time",
-    "def_time",
     "open_dirname",
     "unclaimed",
-    "restore",
 ]
 
 # default values of the settings
-settings_base_values: list[ContentsType] = [
+settings_base_values: list[Any] = [
     "fullscreen ss",
     "windowed ss",
     "ss",
@@ -99,11 +69,6 @@ settings_base_values: list[ContentsType] = [
     0,
     str(screenshot_dir),
     False,
-    False,
-    False,
-    5 * 60,
-    False,
-    {},
     {},
 ]
 
@@ -111,31 +76,6 @@ settings_base_values: list[ContentsType] = [
 # we modify the original function to pretty print
 def dump(obj: Any, fp: SupportsWrite, indent=4):
     return _dump(obj=obj, fp=fp, indent=indent)
-
-
-# my own simple partial
-# saves some performance because we dont have to
-# import the entiredy of functools
-# type hinted, and not overflood with unused features
-
-
-# used by tk apps to make repetitive widgets
-class partial[T, **P]:
-    def __init__(
-        self: Self, func: Callable[P, T], *args: P.args, **kwargs: P.kwargs
-    ) -> None:
-        self.func: Callable[P, T] = func
-        self.args: tuple[Any, ...] = args
-        self.kwargs: dict[str, Any] = kwargs
-
-    def __call__(self: Self, *args: P.args, **kwargs: P.kwargs) -> T:
-        return self.func(*self.args, *args, **self.kwargs, **kwargs)  # type: ignore
-
-
-# this class represents the settings.json file
-# commonly referenced as `data` in files where they
-# want to use the settings
-
 
 # region Settings class
 
@@ -150,49 +90,29 @@ class Settings:
     confirmation: bool = True
     pic_export: Literal[0, 1, 2] = 0
     ss_dir: Path = screenshot_dir
-    automation: bool = False
-    force_automation: bool = False
-    ask_time: bool = False
-    def_time: int = 5 * 60
     open_dirname: bool = False
     unclaimed: dict[str, str] = field(default_factory=dict)
-    restore: dict[str, str] = field(default_factory=dict)
-
-    # guard
-    # dunder to be ignored
-    __instances__: ClassVar[int] = 0
 
     def __post_init__(self):
-        Settings.__instances__ += 1
         # do not remove this, when creating an object
         # the original value is string
         self.ss_dir = Path(self.ss_dir)
 
-        # for self.restore
-        # we will convert only when we are going to use it
-
-    def get_dict(self) -> dict[str, ContentsType]:
+    def get_dict(self) -> dict[str, Any]:
         """Return the Settings object converted to a dictionary and ready to go!
         (Makes the object JSON serializable)
         """
-
         return {
             k: (v if isinstance(v, JSONSerializable) else str(v))
             for k, v in self.__dict__.items()
         }
 
-
-# as per the docstring, i use this as a shortand initializer for the settngs file
-# this still stays, as its a nice way to guard all instance of it
-# though, obsolete
-
-
-def create_dict(contents: dict[str, ContentsType], /) -> Settings:
+def create_dict(contents: dict[str, Any], /) -> Settings:
     """We unpack contents as a dictionary into the Settings object, this ensures the positional arguments dont matter"""
     # before i used to unpack the .values() but now i realized i can just unpack the whole dictionary
     # this function remains since its a way to manage all new instances of the Settings class
 
-    return Settings(**contents)  # type: ignore
+    return Settings(**contents) 
 
 
 # receive a score integer in the savable range
@@ -226,40 +146,6 @@ def format_score(raw_i: int, /) -> str:
             raise ValueError(f"Score Integer isn't in the savable range: {len(raw)}")
 
 
-def deformat_score(score: str) -> int:
-    def dummy() -> Never:
-        raise ValueError("Invalid score: %s" % score)
-
-    def convert(times: int) -> int:
-        assert score is not None
-        try:
-            return int(float(score) * times)
-        except ValueError:
-            dummy()
-
-    try:
-        return int(score)
-    except ValueError:
-        pass
-
-    # case insesitive
-    score = score.lower()
-
-    if score.endswith("k"):
-        score = score.removesuffix("k")
-        return convert(1_000)
-
-    elif score.endswith("m"):
-        score = score.removesuffix("m")
-        return convert(1_000_000)
-
-    elif score.endswith("b"):
-        score = score.removesuffix("b")
-        return convert(100_000_000)
-
-    dummy()
-
-
 # get a code from the user
 # always returns a code
 
@@ -284,11 +170,9 @@ def get_code() -> str:
 
 
 # contains defaults for Settings object
-write: dict[str, ContentsType] = {
+write: dict[str, Any] = {
     k: v for k, v in zip(settings_keys, settings_base_values, strict=True)
 }
-
-
 
 def parse_server_tag(server_tag: str) -> str:
     """
@@ -315,9 +199,13 @@ def parse_server_tag(server_tag: str) -> str:
             s += parse_server_tag(server_tag.partition("dreadnoughts")[2])
             return s
 
-    # e5forge XXX check if you can save in labyrinth
-    if "e5forge" == server_tag:
+    # XXX check if you can save in labyrinth # yes you can
+    if "forge" in server_tag:
         return "new dreadnoughts forge"
+    
+    # XXX you can do this now
+    if "labyrinth" in server_tag:
+        return "new dreadnoughts labyrinth"
 
     if "nexus" in server_tag:
         return "nexus"
@@ -361,10 +249,11 @@ def parse_server_tag(server_tag: str) -> str:
 
     return s.strip()
 
-# we give out some info if we run the file directly
-if __name__ == "__main__":
+def main():
+    import tkinter.messagebox as mbox
+
     print(
-        f"\n{base_dir=}\n{dir_arras=}\n{file_logdata=}\n{file_settings}\n{screenshot_dir=}\n\n"
+    f"\n{base_dir=}\n{dir_arras=}\n{file_logdata=}\n{file_settings}\n{screenshot_dir=}\n\n"
     )
 
     print("regions:\n")
@@ -387,3 +276,8 @@ if __name__ == "__main__":
         title="Not for use",
         message="This is a system file, check the console if you're looking for debug info\notherwise hit 'ok' to exit",
     )
+
+
+# we give out some info if we run the file directly
+if __name__ == "__main__":
+    main()
