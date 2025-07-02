@@ -23,12 +23,6 @@ from json import load
 import tkinter.messagebox as mbox
 
 ENCODING = "utf-8"
-if __name__ != "__main__":
-    import warnings
-
-    warnings.warn(
-        f"This file is NOT meant to be imported, but rather ran directly! process name: {__name__=}"
-    )
 
 # sample code (6f0cb12f:#eo:e5forge:Arbitrator-Astronomic:0/2/6/10/10/10/10/12/0/0:7148698:20683:71:13:4:5017:62:1710762682:JDo5u44GPYop3lwZ)
 
@@ -46,7 +40,7 @@ class DirSortedMode(StrEnum):
     Olddreads = "Olddreads"
     Newdreads = "Newdreads"
     Growth = "Growth"
-    Arms_Race = "Arms_Race"
+    Arms_Race = "Arms Race"
 
 # region Code class
 
