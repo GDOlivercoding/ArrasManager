@@ -1,39 +1,24 @@
-from tkinter import *  # type: ignore[wildcard] ruff: noqa F403
-from tkinter import ttk, messagebox as mbox
+from tkinter import (
+    END,
+    Tk,
+    RIGHT,
+    Scrollbar,
+    Y,
+    Text,
+    DISABLED,
+    BOTH,
+    Entry,
+    StringVar,
+    Button,
+    ttk,
+    messagebox as mbox
+)
 
-from init import GamemodeType, RegionType, format_score, regions
-from typing import Literal
-
-
-def match_region(server: str) -> RegionType:
-    region = "Unknown"
-
-    for k, v in regions.items():
-        if server[1] == k:
-            region = v
-
-    return region  # type: ignore
-
-
-def match_gamemode(server_name: str) -> GamemodeType:
-    """return the gamemode based on its name"""
-
-    gamemode = "Normal"
-
-    for name, mode in {"old": "Olddreads", "forge": "Newdreads"}.items():
-        if name in server_name:
-            gamemode = mode
-
-    for tag, mode in {"g": "Grownth", "a": "Arms Race"}.items():
-        if server_name.startswith(tag):
-            gamemode = mode
-
-    # can only return the given Literal yet still screams
-    return gamemode  # type: ignore[ReturnType]
+from init import format_score
+from parser import match_gamemode, match_region
 
 
 def input_code():
-    global text, entry
     code = text.get()
     if not code:
         return
@@ -45,26 +30,7 @@ def input_code():
         display_widget(data)
 
 
-DataTupleType = tuple[
-    str,
-    str,  # code, server tag
-    Literal["Normal", "Olddreads", "Newdreads", "Grownth", "Arms Race"],  # gamemode
-    str,
-    str,
-    str,
-    str,  # region, class, build, score
-    float,
-    int,  # runtime in hours, minutes
-    int,
-    int,
-    int,  # kills, assists, boss kills/assists
-    float,
-    float,
-    float,  # score per kill, kill per minute, kill per assist
-]
-
-
-def get_analytics(code: str) -> DataTupleType:
+def get_analytics(code: str):
     parts = code.split(":")
     # sample code
     # (6f0cb12f:#eo:e5forge:Arbitrator-Astronomic:0/2/6/10/10/10/10/12/0/0:7148698:20683:71:13:4:5017:62:1710762682:JDo5u44GPYop3lwZ)
@@ -122,7 +88,7 @@ def get_analytics(code: str) -> DataTupleType:
     )
 
 
-def display_widget(data: DataTupleType) -> None:
+def display_widget(data) -> None:
     wdg = Tk()
     wdg.title(f"{data[4]}: {data[6]}")
     wdg.geometry("1000x400")

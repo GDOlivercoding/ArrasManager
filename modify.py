@@ -1,9 +1,7 @@
 import os
-from typing import Never
+from parser import match_gamemode, parse_mode
 from init import (
     Settings,
-    parse_server_tag,
-    create_dict,
     dump,
     file_logdata,
     file_settings,
@@ -36,9 +34,9 @@ from tkinter import (
     filedialog as fdialog,
     messagebox as mbox,
     simpledialog,
+    ttk,
 )
 
-from tkinter import ttk
 from datetime import datetime
 import json
 import webbrowser
@@ -52,6 +50,7 @@ width, height = size()
 x, y = width // 2, height // 2
 
 geometry = f"{x}x{y}"
+was_deleted = False
 
 ENCODING = "utf-8"
 
@@ -65,14 +64,6 @@ class Value:
     close_clock: datetime
 
 
-def is_data_same(data1: Settings, data2: Settings) -> bool:
-    for k, v in vars(data1).items():
-        if v != getattr(data2, k):
-            return False
-
-    return True
-
-
 # main window
 window = Tk()
 window.title("Modify how arras.py functions")
@@ -81,10 +72,9 @@ window.resizable(False, False)
 
 # read settings
 with file_settings.open("r") as file:
-    data = create_dict(json.load(fp=file))
+    data = Settings(**json.load(fp=file))
 
-# I HATE MUTABLE HELL
-START_DATA = create_dict(data.get_dict())
+START_DATA = Settings(**data.get_dict())
 
 MainHeader = Label(
     text="All changes are automatically recorded when closing the program",
@@ -117,9 +107,9 @@ def listbox_edit(listbox: Listbox, index: int, new: str):
     listbox.insert(index, new)
 
 
-def listbox_insert(listbox: Listbox, elements: list[str]):
+def listbox_replace(listbox: Listbox, new_elements: list[str]):
     listbox.delete(0, END)
-    listbox.insert(END, *elements)
+    listbox.insert(END, *new_elements)
 
 
 def delete_logger() -> None:
@@ -139,7 +129,7 @@ def delete_logger() -> None:
     mbox.showinfo(title="Success", message="Successfully reset the logging file!")
 
 
-def _button_press(data: Settings, cur_path: StringVar):
+def ss_dir_button(data: Settings, cur_path: StringVar):
     a = fdialog.askdirectory()
     if not a:
         mbox.showerror(title="Error", message="No directory selected")
@@ -152,7 +142,7 @@ def _button_press(data: Settings, cur_path: StringVar):
     )
 
 
-def set_default(
+def settings_reset(
     cb_confirmation: Checkbutton, pic_scale: Scale, data: Settings, cur_path: StringVar
 ) -> None:
     if not (
@@ -191,15 +181,15 @@ def export_logdata() -> None:
     with file_logdata.open("r", encoding=ENCODING) as file:
         contents = file.readlines()
 
-    fp = fdialog.askdirectory(initialdir=base_dir / "Desktop")
-    if not fp:
+    filepath = fdialog.askdirectory(initialdir=base_dir / "Desktop")
+    if not filepath:
         mbox.showerror(title="No input", message="No directory selected")
         return
 
-    fp = Path(fp)
+    filepath = Path(filepath)
 
-    with (fp / "Logdata copy.txt").open("w") as f:
-        f.writelines(contents)
+    with (filepath / "Logdata copy.txt").open("w") as file:
+        file.writelines(contents)
 
     mbox.showinfo(
         title="Success",
@@ -207,7 +197,7 @@ def export_logdata() -> None:
     )
 
 
-def save_button_press(data: Settings) -> None:
+def settings_save_button(data: Settings) -> None:
     with file_settings.open("w") as file:
         dump(fp=file, obj=data.get_dict())
 
@@ -219,7 +209,7 @@ def manage_saves_widget():
     TOP.geometry(geometry)
     TOP.title("Manage saves - modify.py")
 
-    def _generic_indice_checks(listbox) -> tuple[str, int] | None:
+    def indice_checks(listbox: Listbox) -> tuple[str, int] | None:
         indice = listbox.curselection()
 
         if not indice:
@@ -231,29 +221,13 @@ def manage_saves_widget():
         name = listbox.get(indice)
 
         if name not in table:
-            mbox.showerror("Nothing selected", "No save selected")
+            mbox.showerror("Nothing selected", "Didn't select a valid save")
             return
 
         return (name, indice)
 
-    def _view(listbox: Listbox):
-        def match_gamemode(gamemode_tag: str) -> str:
-            """return the gamemode based on its name"""
-
-            gamemode = "Normal"
-
-            for name, mode in {"olds": "Olddreads", "forge": "Newdreads"}.items():
-                if name in gamemode_tag:
-                    gamemode = mode
-                    break
-
-            for tag, mode in {"g": "Grownth", "a": "Arms Race"}.items():
-                if gamemode_tag.startswith(tag):
-                    gamemode = mode
-
-            return gamemode
-
-        get = _generic_indice_checks(listbox)
+    def view_code():
+        get = indice_checks(MAIN)
         if not get:
             return
 
@@ -273,11 +247,10 @@ def manage_saves_widget():
 
         to_insert = []
 
-        files = list(path.iterdir())
-        _files: dict[str, Path] = {s.name: s for s in files}
+        files = {file.name: file for file in path.iterdir()}
 
-        if "code.txt" in _files.keys():
-            code_file = _files["code.txt"]
+        if "code.txt" in files.keys():
+            code_file = files["code.txt"]
         else:
             mbox.showerror(
                 "Code file not found",
@@ -293,11 +266,11 @@ def manage_saves_widget():
         for suffix in ["png", "jpg", "jpeg"]:
             images = list(path.glob(f"*.{suffix}"))
 
-            if (amt := len(images)) == 2:
+            if (amount := len(images)) == 2:
                 ss1, ss2 = images
                 break
 
-            elif amt == 1:
+            elif amount == 1:
                 ss1, ss2 = images[0], None
                 break
 
@@ -313,17 +286,19 @@ def manage_saves_widget():
             tk.destroy()
             return
 
+        mode = code.split(":")[2]  # Unreadable unsanitary
+
         to_insert.append(f"code: {code}")
         to_insert.append(f"path: {str(path)}")
-        to_insert.append(f"gamemode: {match_gamemode(code.split(':')[2])}")
-        to_insert.append(f"mode: {parse_server_tag(code.split(':')[2])}")
+        to_insert.append(f"gamemode: {match_gamemode(mode)}")
+        to_insert.append(f"mode: {' '.join(parse_mode(mode))}")
 
         text.insert(END, "\n".join(to_insert))
         text.config(state="disabled")
 
-        # Label(tk, text="Images", font="TkDefaultFont 15").pack(anchor="s")
-
-        missing = lambda: mbox.showinfo("Missing", "This screenshot is missing")
+        missing = partial(
+            mbox.showinfo, title="Missing", message="This screenshot is missing"
+        )
 
         ss_frame = Frame(tk)
         ss_frame.pack(side="bottom")
@@ -333,23 +308,26 @@ def manage_saves_widget():
             text="Screenshot 1",
             command=(lambda: os.startfile(ss1)) if ss1 is not None else missing,
         )
+
         ss2_button = Button(
             ss_frame,
             text="Screenshot 2",
             command=(lambda: os.startfile(ss2)) if ss2 is not None else missing,
         )
+
         ss1_button.pack(side="left", pady=20)
         ss2_button.pack(side="left", padx=30, pady=20)
         open_button = Button(
             ss_frame, text="Open Location", command=lambda: os.startfile(path)
         )
+
         open_button.pack(side="left", pady=20)
 
-    def search_fn(listbox: Listbox, entry: Entry):
-        get = entry.get().lower()
+    def search_fn():
+        get = search_entry.get().lower()
 
         if not get:
-            listbox_insert(listbox, table_seps)
+            listbox_replace(MAIN, table_seps)
             return
 
         new_table = []
@@ -361,10 +339,10 @@ def manage_saves_widget():
         if not new_table:
             new_table.append(f"No matches for '{get}'")
 
-        listbox_insert(listbox, new_table)
+        listbox_replace(MAIN, new_table)
 
     def end_run(listbox: Listbox):
-        get = _generic_indice_checks(listbox)
+        get = indice_checks(listbox)
         if not get:
             return
 
@@ -401,11 +379,11 @@ def manage_saves_widget():
         text = Text(wind)
         text.pack(expand=True, fill=BOTH)
 
-        total_score = 0
+        total_scores: dict[int, str] = {}
 
         for path in table.values():
-            score = int((path / "code.txt").read_text().split(":")[5])
-            total_score += score
+            score = int((code := (path / "code.txt").read_text()).split(":")[5])
+            total_scores[score] = code
 
         to_insert = [
             f"Total saved scores: {len(table) + len(ended_runs_table)}",
@@ -419,7 +397,8 @@ def manage_saves_widget():
         to_insert.append(
             f"Total hours spent waiting to save: {(len(table) + len(ended_runs_table)) * 5 / 60:.2f}h"
         )
-        to_insert.append(f"Total amount of score saved: {total_score:,}")
+        print([total_scores[score] for score in sorted(total_scores, reverse=True)[:5]])
+        to_insert.append(f"Total amount of score saved: {sum(total_scores):,}")
 
         text.insert(END, "\n".join(to_insert))
 
@@ -429,7 +408,7 @@ def manage_saves_widget():
     wrapper_button = partial(Button, master=wrapper)
     packer = {"side": "left", "pady": 20, "padx": (20, 0)}
 
-    viewer = wrapper_button(text="View", command=lambda: _view(MAIN))
+    viewer = wrapper_button(text="View", command=view_code)
     viewer.pack(**packer)
 
     deleter = wrapper_button(text="Discard Save", command=lambda: end_run(MAIN))
@@ -449,9 +428,7 @@ def manage_saves_widget():
     search_entry = Entry(search_frame, width=70, font="TkDefaultFont 15")
     search_entry.pack(anchor="center", side="left")
 
-    search_btn = Button(
-        search_frame, text="Search", command=lambda: search_fn(MAIN, search_entry)
-    )
+    search_btn = Button(search_frame, text="Search", command=search_fn)
     search_btn.pack(side="right")
 
     MAIN = Listbox(TOP, yscrollcommand=scroll.set)
@@ -484,7 +461,7 @@ def manage_saves_widget():
 
         dir = join / name
 
-        temp = {}
+        temp: dict[str, Path] = {}
 
         for d in (d for d in dir.iterdir() if d.is_dir()):
             assert name not in table, f"NAME STRING IN TABLE: {name}"
@@ -492,7 +469,7 @@ def manage_saves_widget():
 
         if name == ENDED_RUNS:
             ended_runs_table = {**temp}  # mutable issues
-            continue  # (break)
+            continue
 
         table.update(temp)
 
@@ -505,18 +482,18 @@ def manage_saves_widget():
             # to make a space we have to do this because newlines dont work
 
         dir_end = perf_counter()
-        print(f"Ended indexing {name} took {dir_end-dir_start:.2f}s")
+        print(f"Ended indexing {name} took {dir_end - dir_start:.2f}s")
 
     end = perf_counter()
-    print(f"Ended indexing, took {end-start:.2f}s")
+    print(f"Ended indexing, took {end - start:.2f}s")
 
-    listbox_insert(MAIN, table_seps)
+    listbox_replace(MAIN, table_seps)
 
     def erase_and_search():
-        search_entry.delete(0, END)
-        search_fn(MAIN, search_entry)
+        listbox_edit(MAIN, 0, "")
+        search_fn()
 
-    TOP.bind("<Return>", lambda _event: search_fn(MAIN, search_entry))
+    TOP.bind("<Return>", lambda _event: search_fn())
     TOP.bind("<Escape>", lambda _event: erase_and_search())
     TOP.mainloop()
 
@@ -529,10 +506,10 @@ def manage_saves_widget():
 menubar = Menu(window)
 window.config(menu=menubar)
 
-menubar.add_command(label="Save Settings", command=lambda: save_button_press(data))
+menubar.add_command(label="Save Settings", command=lambda: settings_save_button(data))
 
 menubar.add_command(
-    label="Open Docs",
+    label="GitHub Repository",
     command=lambda: webbrowser.open(
         "https://github.com/GDOlivercoding/ArrasManager", new=2
     ),
@@ -540,20 +517,20 @@ menubar.add_command(
 
 menubar.add_command(label="Manage Saves", command=manage_saves_widget)
 
-tab_nb = ttk.Notebook(tab1)
-confirm_tab = ttk.Frame(tab_nb)
-open_dirname_tab = ttk.Frame(tab_nb)
-pic_export_tab = ttk.Frame(tab_nb)
-pic_dir_tab = ttk.Frame(tab_nb)
-pic_filenames_tab = ttk.Frame(tab_nb)
+settings_frame = ttk.Notebook(tab1)
+confirm_tab = ttk.Frame(settings_frame)
+open_dirname_tab = ttk.Frame(settings_frame)
+pic_export_tab = ttk.Frame(settings_frame)
+pic_dir_tab = ttk.Frame(settings_frame)
+pic_filenames_tab = ttk.Frame(settings_frame)
 
-tab_nb.add(confirm_tab, text="Confirmation")
-tab_nb.add(pic_export_tab, text="Picture exporting")
-tab_nb.add(pic_dir_tab, text="Screenshot directory")
-tab_nb.add(pic_filenames_tab, text="Screenshot filenames")
-tab_nb.add(open_dirname_tab, text="Reveal directory in file explorer")
+settings_frame.add(confirm_tab, text="Confirmation")
+settings_frame.add(pic_export_tab, text="Picture exporting")
+settings_frame.add(pic_dir_tab, text="Screenshot directory")
+settings_frame.add(pic_filenames_tab, text="Screenshot filenames")
+settings_frame.add(open_dirname_tab, text="Reveal directory in file explorer")
 
-tab_nb.pack(anchor="nw", pady=(10, 0))
+settings_frame.pack(anchor="nw", pady=(10, 0))
 
 header = Label(confirm_tab, text="Setting 1:", font=("great vibes", 30))
 header.pack(anchor="nw")
@@ -574,11 +551,13 @@ cb_confirmation = Checkbutton(
     activebackground="green",
     activeforeground="dark gray",
 )
+
 cb_confirmation.pack(anchor="nw")
 if data.confirmation:
     cb_confirmation.invoke()
 
-Label(open_dirname_tab, text="Setting 5:", font=("great vibes", 30)).pack(anchor="nw")
+setting_5 = Label(open_dirname_tab, text="Setting 5:", font=("great vibes", 30))
+setting_5.pack(anchor="nw")
 
 var_dirname = BooleanVar()
 
@@ -628,7 +607,7 @@ ss_text = Label(pic_dir_tab, text="Screenshots folder", font=("great vibes", 20)
 ss_text.pack(anchor="nw")
 
 folder_button = Button(
-    pic_dir_tab, text="Set folder", command=lambda: _button_press(data, cur_path)
+    pic_dir_tab, text="Set folder", command=lambda: ss_dir_button(data, cur_path)
 )
 folder_button.pack(anchor="nw")
 
@@ -643,21 +622,16 @@ Value.fullscreen = StringVar(value=data.fullscreen_ss, name="fullscreen")
 Value.single = StringVar(value=data.single_ss, name="single")
 
 
-def widget_setter(var: StringVar, label: Label, /, *, title: str, prompt: str):
-    val = simpledialog.askstring(title, prompt)
+def screenshot_setter(str_var: StringVar, label: Label):
+    string = simpledialog.askstring(
+        f"{str(str_var).capitalize()}", f"Enter name for {str(str_var)} screenshot"
+    )
 
     # ignore non and empty strings
-    if val:
-        var.set(val)
-        label.config(text=val)
+    if string:
+        str_var.set(string)
+        label.config(text=string)
 
-
-widget_caller = lambda mode, label: widget_setter(
-    mode,
-    label,
-    title=f"{str(mode).capitalize()}",
-    prompt=f"Enter name for {str(mode)} screenshot",
-)
 
 packer: dict = {"anchor": "nw", "pady": (0, 30)}
 
@@ -669,7 +643,7 @@ Label1.pack(anchor="nw", pady=(20, 0))
 
 windowed_displayer = displayer(text=Value.windowed.get())
 windowed_setter = setter(
-    command=lambda: widget_caller(Value.windowed, windowed_displayer)
+    command=lambda: screenshot_setter(Value.windowed, windowed_displayer)
 )
 windowed_setter.pack(anchor="nw")
 
@@ -680,17 +654,21 @@ Label2.pack(anchor="nw", pady=(20, 0))
 
 fullscreen_displayer = displayer(text=Value.fullscreen.get())
 fullscreen_setter = setter(
-    command=lambda: widget_caller(Value.fullscreen, fullscreen_displayer)
+    command=lambda: screenshot_setter(Value.fullscreen, fullscreen_displayer)
 )
 fullscreen_setter.pack(anchor="nw")
 
 fullscreen_displayer.pack(**packer)
 
-Label3 = Label(pic_filenames_tab, text="Singular picture", font=("great vibes", 20))
-Label3.pack(anchor="nw", pady=(20, 0))
+label_single = Label(
+    pic_filenames_tab, text="Singular picture", font=("great vibes", 20)
+)
+label_single.pack(anchor="nw", pady=(20, 0))
 
 single_displayer = displayer(text=Value.single.get())
-single_setter = setter(command=lambda: widget_caller(Value.single, single_displayer))
+single_setter = setter(
+    command=lambda: screenshot_setter(Value.single, single_displayer)
+)
 single_setter.pack(anchor="nw")
 
 single_displayer.pack(**packer)
@@ -731,7 +709,7 @@ for item in settings.items():
     store.append(f"{item[0]}: {item[1]}")
 
 
-def stgs_func(data: Settings):
+def view_settings(data: Settings):
     view_widget(
         title="Settings.json",
         context="\n".join(f"{k}: {v}" for k, v in data.get_dict().items()),
@@ -739,16 +717,16 @@ def stgs_func(data: Settings):
 
 
 view_stgs_button = Button(
-    tab3, text="View settings", command=lambda data=data: stgs_func(data)
+    tab3, text="View settings", command=lambda data=data: view_settings(data)
 )
 view_stgs_button.pack(anchor="nw")
 
-reset_stgs_button = Button(
+reset_settings = Button(
     tab3,
     text="Reset settings",
-    command=lambda: set_default(cb_confirmation, pic_scale, data, cur_path),
+    command=lambda: settings_reset(cb_confirmation, pic_scale, data, cur_path),
 )
-reset_stgs_button.pack(anchor="nw", pady=(20, 0))
+reset_settings.pack(anchor="nw", pady=(20, 0))
 
 # <--------------------------------->
 
@@ -785,7 +763,7 @@ export_log.pack(anchor="nw", pady=(20, 0))
 saves_label = Label(tab3, text="Saves Location", font=("great vibes", 30))
 saves_label.pack(anchor="nw", pady=(20, 0))
 
-open_saves = lambda: startfile(Path(__file__).parent)
+open_saves = partial(startfile, filepath=Path(__file__).parent)
 
 open_saves_button = Button(tab3, text="Open", command=open_saves)
 open_saves_button.pack(anchor="w", padx=(10, 0), pady=(5, 0))
@@ -793,12 +771,12 @@ open_saves_button.pack(anchor="w", padx=(10, 0), pady=(5, 0))
 
 # tab 5: Unclaimed
 def copy_command():
-    selection = listbox.curselection()
+    selection = lb_unclaimed.curselection()
     if not selection:
         mbox.showerror(title="ERROR", message="No code selected")
         return
 
-    code = listbox.get(selection)
+    code = lb_unclaimed.get(selection)
 
     try:
         import pyperclip
@@ -815,20 +793,20 @@ def copy_command():
 
 
 def claim_command():
-    global listbox, data
-    selection = listbox.curselection()
+    global lb_unclaimed, data
+    selection = lb_unclaimed.curselection()
     if not selection:
         mbox.showerror(title="ERROR", message="No code selected")
         return
 
-    code = listbox.get(selection)
+    code = lb_unclaimed.get(selection)
 
     if not mbox.askyesno(title="CONFIRMATION", message="Are you sure?"):
         return
 
     try:
         del data.unclaimed[code]
-        listbox.delete(selection)
+        lb_unclaimed.delete(selection)
     except ValueError:
         mbox.showerror(title="ERROR", message="Selected object not found")
 
@@ -836,12 +814,12 @@ def claim_command():
 scrollbar = Scrollbar(tab5)
 scrollbar.pack(side=RIGHT, fill=Y)
 
-listbox = Listbox(tab5, font=("great vibes", 8))
-listbox.config(width=550, height=20, yscrollcommand=scrollbar.set)
-listbox.insert(END, *data.unclaimed.keys())
-listbox.pack(anchor="center")
+lb_unclaimed = Listbox(tab5, font=("great vibes", 8))
+lb_unclaimed.config(width=550, height=20, yscrollcommand=scrollbar.set)
+lb_unclaimed.insert(END, *data.unclaimed.keys())
+lb_unclaimed.pack(anchor="center")
 
-scrollbar.config(command=listbox.yview, width=20)
+scrollbar.config(command=lb_unclaimed.yview, width=20)
 
 button = Button(tab5, text="Copy Claim Command", font=("", 10), command=copy_command)
 button.pack(pady=20, anchor="center")
@@ -853,7 +831,7 @@ button.pack(pady=(50, 0), anchor="center")
 
 
 # save changes upon exiting
-def save(
+def destroy_application(
     data: Settings,
     var_confirmation: BooleanVar,
     var_dirname: BooleanVar,
@@ -883,7 +861,7 @@ def save(
     # if logdata was set to be reset or if the user didnt change anything
     # do not write to it
 
-    if was_deleted or is_data_same(data, START_DATA):
+    if was_deleted or data.is_data_same(START_DATA):
         exit()
 
     # ------------------------------------------------------------
@@ -910,7 +888,7 @@ def save(
 
 ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------
-modify.py instance at {str(datetime.now()).split(".")[0].split(" ")[0]} {Value.open_clock}, instance number {dummy}:     
+modify.py instance at {datetime.now().strftime("%d.%m.")}, instance number {dummy}:     
 
 Saving:
 confirmation set to {data.confirmation}
@@ -919,18 +897,18 @@ ssdir set to {data.ss_dir}
 
 modify.py ran at {Value.open_clock}
 killed at {Value.close_clock}
-total time spent in modify.py: {Value.close_clock - Value.open_clock}
+total time spent in modify.py: {(Value.close_clock - Value.open_clock).seconds}s
 """
     contents.append(SET_TO)
     with file_logdata.open("w", encoding="utf-8") as file:
         file.writelines(contents)
-        
+
     exit()
 
 
 window.protocol(
     "WM_DELETE_WINDOW",  # WINDOW MANAGER DELETE WINDOW
-    lambda data=data: save(
+    lambda data=data: destroy_application(
         data,
         var_confirmation,
         var_dirname,

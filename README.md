@@ -51,5 +51,3 @@ after you're done, select the "full installation" option, it'll ask you for a di
 after you're done, open up the new folder and verify that all files have been moved successfully, you may now delete the extracted folder as all files have been moved
 
 at this point, you may now delete `requirements.py`, `requirements.txt` and `README.md`, they no longer have any purpose, of course, you may keep the README as a guide in using my software
-
-documentation can be found in the docs folder

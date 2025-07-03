@@ -1,14 +1,21 @@
+# Utility module for parsing things.
+
+from enum import StrEnum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from init import RegionType
+
 suffixes = {
     "s": "Siege",  # collides # TODO: Find out if siege has a team condition.
-                   # Yes, and it is always 1tdm
-
+    # Yes, and it is always 1tdm
     "b": "Soccer",  # collides # or football
     "d": "Domination",  # collides
     "g": "Grudgeball",  # collides
-    "a": "Assault",  # collides           
+    "a": "Assault",  # collides
     "m": "Mothership",  # collides
     "t": "Tag",
-    "p": "Pandemic"  # collides
+    "p": "Pandemic",  # collides
 }
 
 prefixes = {
@@ -17,31 +24,31 @@ prefixes = {
     "p": "Portal",  # collides # unused
     "a": "Arms_Race",  # collides
     "g": "Growth",  # collides
-    "r": "Rock", # new
-
+    "r": "Rock",  # new
     # team types that dont require a team condition
     "f": "FFA",
     "s": "Squads",  # collides
     "d": "Duos",  # collides
-    "c": "Clan_Wars",  
-}  
+    "c": "Clan_Wars",
+}
 
 all_keys = [*prefixes, *suffixes]
 
-extra_word_count_map = {
-    letter: i for i, letter in enumerate("abcd", start=10)
-}
+extra_word_count_map = {letter: i for i, letter in enumerate("abcd", start=10)}
 
 DEFAULT_MESSAGE = "Missing expected node."
+
+
 class NodeExhauster[T]:
     def __init__(self, seq: list[T]) -> None:
         self.seq = seq
-    
+
     def __call__(self, message: str = DEFAULT_MESSAGE) -> T:
         try:
             return self.seq.pop(0)
         except IndexError:
             raise ValueError(message) from None
+
 
 def intable(s: str) -> bool:
     try:
@@ -50,16 +57,18 @@ def intable(s: str) -> bool:
         return False
     else:
         return True
-    
+
+
 def tryint(s: str, exc: Exception) -> int:
     try:
         return int(s)
     except ValueError:
         raise exc from None
 
-def parse(gamemode: str) -> list[str]:
+
+def parse_mode(gamemode: str) -> list[str]:
     """
-    Convert the mode's notation (usually shown bottom right of the screen) 
+    Convert the mode's notation (usually shown bottom right of the screen)
     to a list of strings of the parts, this is also the 3rd part of a save code,
     the output is **unformatted** and in **raw** form
 
@@ -82,7 +91,7 @@ def parse(gamemode: str) -> list[str]:
 
         # Expecting a single custom word
         if node == "e":
-            spaces_node = new("Expected letter count integer after \"e\".")
+            spaces_node = new('Expected letter count integer after "e".')
 
             if intable(spaces_node):
                 space_count = int(spaces_node)
@@ -100,12 +109,14 @@ def parse(gamemode: str) -> list[str]:
 
             temp = space_count
 
-            while space_count:                  
-                word.append(new(
-                    f"Expected continuation of word," 
-                    f"expected {temp} letters, got {space_count}."
-                ))
-                                    
+            while space_count:
+                word.append(
+                    new(
+                        f"Expected continuation of word,"
+                        f"expected {temp} letters, got {space_count}."
+                    )
+                )
+
                 space_count -= 1
 
             output.append("".join(word))
@@ -113,18 +124,20 @@ def parse(gamemode: str) -> list[str]:
         # Expecting multiple custom words
         elif node in ("w", "x"):
             part_count = tryint(
-                new("Expected a part count integer after \"w\"."),
-                ValueError("Part count is supposed to be an integer after \"w\".")
+                new('Expected a part count integer after "w".'),
+                ValueError('Part count is supposed to be an integer after "w".'),
             )
 
             if part_count % 2 != 1:
                 raise ValueError("Part count integer is supposed to be odd.")
-            
+
             word_count = int((part_count + 1) / 2)
 
             letter_count = tryint(
-                new(f"Expected a letter count integer after \"w{part_count}\"."),
-                ValueError(f"Letter count is supposed to be an integer after \"w{part_count}\".")
+                new(f'Expected a letter count integer after "w{part_count}".'),
+                ValueError(
+                    f'Letter count is supposed to be an integer after "w{part_count}".'
+                ),
             )
 
             while True:
@@ -133,9 +146,10 @@ def parse(gamemode: str) -> list[str]:
                 while letter_count:
                     word.append(
                         new(
-                        f"Expected continuation of word," 
-                        f"expected {temp} letters, got {letter_count}."
-                    ))
+                            f"Expected continuation of word,"
+                            f"expected {temp} letters, got {letter_count}."
+                        )
+                    )
                     letter_count -= 1
 
                 output.append("".join(word))
@@ -146,9 +160,11 @@ def parse(gamemode: str) -> list[str]:
 
                 sep = new(f"Expected seperator after {word!r}.")
                 if sep != "s":
-                    raise ValueError(f"Incorrect seperator character {sep!r} after {word!r}.")
-                
-                letter_node = new(f"Expected a letter count integer after \"s\".")
+                    raise ValueError(
+                        f"Incorrect seperator character {sep!r} after {word!r}."
+                    )
+
+                letter_node = new('Expected a letter count integer after "s".')
                 if intable(letter_node):
                     letter_count = int(letter_node)
                     if not (0 < letter_count < 10):
@@ -165,34 +181,95 @@ def parse(gamemode: str) -> list[str]:
         # TDM integer
         elif intable(node):
             if int(node) not in range(2, 5):
-                raise ValueError(f"Team integer {node!r} is not in the TDM range of [2-4].")
-            
+                raise ValueError(
+                    f"Team integer {node!r} is not in the TDM range of [2-4]."
+                )
+
             if team_condition:
                 raise ValueError(f"Team condition found twice ({node=}).")
-            
+
             output.append(node + "tdm")
             team_condition = True
 
         else:
             if node not in all_keys:
-                raise ValueError(f"Unexpected token {node!r}.")  
+                raise ValueError(f"Unexpected token {node!r}.")
 
             if team_condition:
                 # 4tdm-
                 if node not in suffixes:
                     # 4tdm-portal
-                    raise ValueError(f"Cannot add prefix after team condition ({node=}).")
-                
+                    raise ValueError(
+                        f"Cannot add prefix after team condition ({node=})."
+                    )
+
                 # 4tdm-mothership
                 output.append(suffixes[node])
-                
+
             else:
                 # arms race-
                 if node not in prefixes:
                     # arms race-domination
-                    raise ValueError(f"Cannot add suffix before team condition ({node=}).")
-                
+                    raise ValueError(
+                        f"Cannot add suffix before team condition ({node=})."
+                    )
+
                 # arms race-growth
-                output.append(prefixes[node])   
+                output.append(prefixes[node])
 
     return output
+
+
+class DirSortedMode(StrEnum):
+    Normal = "Normal"
+    Olddreads = "Olddreads"
+    Newdreads = "Newdreads"
+    Growth = "Growth"
+    Arms_Race = "Arms Race"
+
+
+def match_gamemode(gamemode: str):
+    """return the gamemode based on its name"""
+    # this is going to be hard to make stable
+
+    output_mode: DirSortedMode = DirSortedMode.Normal
+
+    # stable function
+    parsed = parse_mode(gamemode)
+
+    # stable
+    if "old" in parsed:
+        output_mode = DirSortedMode.Olddreads
+
+    # stable
+    elif "Growth" in parsed:
+        output_mode = DirSortedMode.Growth
+
+    # XXX careful for this check
+    elif "Arms_Race" in parsed:
+        output_mode = DirSortedMode.Arms_Race
+
+    elif any(node in ("labyrinth", "forge") for node in parsed):
+        output_mode = DirSortedMode.Newdreads
+
+    return output_mode
+
+
+regions: dict[str, "RegionType"] = {
+    "e": "Europe",
+    "w": "US West",
+    "c": "US Central",
+    "a": "Asia",  # How did i just completely miss Asia...
+    "o": "Oceania",
+}
+
+
+def match_region(server: str) -> "RegionType":
+    region_char = server.removeprefix("#")[0]
+    return regions[region_char]
+
+def trail_zero(s: str, requested_len: int):
+    if len(s) == requested_len:
+        return s
+    
+    return "0" * (requested_len - len(s)) + s

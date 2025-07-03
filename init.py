@@ -33,20 +33,20 @@ class SupportsWrite(Protocol):
 # to be json serialized
 JSONSerializable = None | bool | str | float | int | tuple | list | dict
 
-# \region tag: region name
-regions: dict[str, str] = {
+# region tag: region name
+regions: dict[str, "RegionType"] = {
     "e": "Europe",
     "w": "US West",
     "c": "US Central",
-    "a": "Asia", # How did i just completely miss Asia...
+    "a": "Asia",  # How did i just completely miss Asia...
     "o": "Oceania",
 }
 
 # more gamemode region type things, varies...
-gamemode: list[str] = ["Normal", "Olddreads", "Newdreads", "Growth", "Arms race"]
-RegionType = Literal["Europe", "US West", "US Central", "Oceania"]
 Region = list(regions.values())
-GamemodeType = Literal["Normal", "Olddreads", "Newdreads", "Growth", "Arms Race"]
+gamemode: list[str] = ["Normal", "Olddreads", "Newdreads", "Growth", "Arms race"]
+type RegionType = Literal["Europe", "US West", "US Central", "Oceania", "Asia"]
+type GamemodeType = Literal["Normal", "Olddreads", "Newdreads", "Growth", "Arms Race"]
 
 # a list of strings of names of the settings file
 settings_keys: list[str] = [
@@ -76,6 +76,7 @@ settings_base_values: list[Any] = [
 # we modify the original function to pretty print
 def dump(obj: Any, fp: SupportsWrite, indent=4):
     return _dump(obj=obj, fp=fp, indent=indent)
+
 
 # region Settings class
 
@@ -107,12 +108,20 @@ class Settings:
             for k, v in self.__dict__.items()
         }
 
+    def is_data_same(self, other: "Settings") -> bool:
+        for k, v in vars(self).items():
+            if v != getattr(other, k):
+                return False
+
+        return True
+
+
 def create_dict(contents: dict[str, Any], /) -> Settings:
     """We unpack contents as a dictionary into the Settings object, this ensures the positional arguments dont matter"""
     # before i used to unpack the .values() but now i realized i can just unpack the whole dictionary
     # this function remains since its a way to manage all new instances of the Settings class
 
-    return Settings(**contents) 
+    return Settings(**contents)
 
 
 # receive a score integer in the savable range
@@ -122,7 +131,7 @@ def create_dict(contents: dict[str, Any], /) -> Settings:
 # you that i will never edit this function
 
 
-def format_score(raw_i: int, /) -> str:
+def format_score(raw_i: int | str, /) -> str:
     """return the raw score integer formatted"""
     raw = str(raw_i)  # we want an integer but we will format it as a string
 
@@ -146,33 +155,11 @@ def format_score(raw_i: int, /) -> str:
             raise ValueError(f"Score Integer isn't in the savable range: {len(raw)}")
 
 
-# get a code from the user
-# always returns a code
-
-
-def get_code() -> str:
-    try:
-        import pyperclip
-
-        code = pyperclip.paste()
-
-        if len(code.split(":")) >= VALID_CODE_INTEGER:
-            return code
-        else:
-            raise ValueError
-
-    except (ModuleNotFoundError, ValueError):
-        while True:
-            if len((code := input("Input code: ")).split(":")) >= VALID_CODE_INTEGER:
-                return code
-            else:
-                print("Invalid code")
-
-
 # contains defaults for Settings object
 write: dict[str, Any] = {
     k: v for k, v in zip(settings_keys, settings_base_values, strict=True)
 }
+
 
 def parse_server_tag(server_tag: str) -> str:
     """
@@ -202,7 +189,7 @@ def parse_server_tag(server_tag: str) -> str:
     # XXX check if you can save in labyrinth # yes you can
     if "forge" in server_tag:
         return "new dreadnoughts forge"
-    
+
     # XXX you can do this now
     if "labyrinth" in server_tag:
         return "new dreadnoughts labyrinth"
@@ -249,11 +236,12 @@ def parse_server_tag(server_tag: str) -> str:
 
     return s.strip()
 
+
 def main():
     import tkinter.messagebox as mbox
 
     print(
-    f"\n{base_dir=}\n{dir_arras=}\n{file_logdata=}\n{file_settings}\n{screenshot_dir=}\n\n"
+        f"\n{base_dir=}\n{dir_arras=}\n{file_logdata=}\n{file_settings}\n{screenshot_dir=}\n\n"
     )
 
     print("regions:\n")
